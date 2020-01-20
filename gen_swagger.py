@@ -28,7 +28,6 @@ class literal(str):
 
 def parse_content(content) -> []:
     """
-    Parse token in one line or multi lines
     // @xxx xxx, // @xxx, /* @xxx xxx */, /* @xxx */
     """
     one_line_ptn = re.compile(r'// @(.+)')
@@ -40,9 +39,7 @@ def parse_content(content) -> []:
 
 def split_kv(tokens: []) -> ([], []):
     """
-    Split all tokens into key-value list
-    ['x', 'y z', 'a b', 'a c'] ->
-    ['x', 'y', 'a', 'a'], ['', 'z', 'b', 'c']
+    ['x', 'y z', 'a b', 'a c'] -> ['x', 'y', 'a', 'a'], ['', 'z', 'b', 'c']
     """
     ks, vs = [], []
     for token in tokens:
@@ -55,7 +52,6 @@ def split_kv(tokens: []) -> ([], []):
 
 def split_dict(tokens: []) -> {}:
     """
-    Split tokens into single key-value dict
     ['x', 'y z', 'a b', 'a c'] -> {'x': '', 'y': 'z'}
     """
     ks, vs = split_kv(tokens)
@@ -69,7 +65,6 @@ def split_dict(tokens: []) -> {}:
 
 def split_array(tokens: [], field: str) -> []:
     """
-    Split tokens into array
     ['a b', 'a c'] -> ['b', 'c']
     """
     ks, vs = split_kv(tokens)
@@ -177,7 +172,7 @@ def gen_ctrls(all_file_paths: [], *, demo_resp: {}, auth_param: [], auth_ec: [])
 def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (str, str, {}):
     """
     Generate api doc from a route
-    :return: route, obj
+    :return: route, method, obj
     """
     try:
         tokens = parse_content(content)
@@ -226,6 +221,7 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
             emsg = '"{}"'.format(' '.join(emsg))
             if ecode in responses:
                 emsg = '{}, {}'.format(responses[ecode]['description'], emsg)
+
             responses[ecode] = {
                 'description': literal(emsg)
             }
@@ -244,6 +240,9 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
                         pass
             rjson = json.dumps(json.loads(rjson), indent=4)
             rjson = f'```json\n{rjson}\n```'
+            if rcode in responses:
+                rjson = '{}, {}'.format(responses[rcode]['description'], rjson)
+
             responses[rcode] = {
                 'description': literal(rjson)
             }
@@ -267,11 +266,11 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
 def parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', '--main', type=str,
-                        required=True, help='main file of swagger config')
+                        required=True, help='path of main file containing swagger config')
     parser.add_argument('-o', '--output', type=str,
                         required=True, help='path of output yaml')
     parser.add_argument('-e', '--ext', type=str, nargs='*',
-                        default=[], help='extension of files wanted to parse')
+                        default=[], help='extensions of files wanted to parse')
     args = parser.parse_args()
     return args
 
@@ -316,8 +315,12 @@ def main():
     out = stripper(out)
     yaml.add_representer(literal, literal.literal_presenter)
     print(f'> Saving {args.output}...')
-    with open(args.output, 'w', encoding='utf-8') as f:
-        yaml.dump(out, stream=f, encoding='utf-8', allow_unicode=True)
+    try:
+        with open(args.output, 'w', encoding='utf-8') as f:
+            yaml.dump(out, stream=f, encoding='utf-8', allow_unicode=True)
+    except:
+        print(f'Error: failed to save file {args.output}.')
+        exit(1)
 
 
 if __name__ == '__main__':
