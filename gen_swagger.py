@@ -31,7 +31,7 @@ def parse_content(content) -> []:
     // @xxx xxx, // @xxx, /* @xxx xxx */, /* @xxx */
     """
     one_line_ptn = re.compile(r'// @(.+)')
-    multi_line_ptn = re.compile(r'/\* @(.+)\*/', re.DOTALL)
+    multi_line_ptn = re.compile(r'/\* @(.+?)\*/', re.DOTALL)
     tokens = one_line_ptn.findall(content)
     tokens.extend(multi_line_ptn.findall(content))
     return tokens
@@ -116,8 +116,8 @@ def gen_main(file_path: str) -> {}:
         'info': {
             'title': field(kv, 'Title'),
             'description': field(kv, 'Description'),
-            'version': field(kv, 'Version', required=False),
-            'termsOfService': field(kv, 'TermsOfService'),
+            'version': field(kv, 'Version'),
+            'termsOfService': field(kv, 'TermsOfService', required=False),
             'license': {
                 'name': field(kv, 'License.Name', required=False),
                 'url': field(kv, 'License.Url', required=False)
@@ -219,7 +219,7 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
         for ec in ec_arr:
             ecode, *emsg = re.split(r'[ \t]', ec)
             emsg = '"{}"'.format(' '.join(emsg))
-            if ecode in responses:
+            if ecode in responses and 'description' in responses[ecode]:
                 emsg = '{}, {}'.format(responses[ecode]['description'], emsg)
 
             responses[ecode] = {
