@@ -1,0 +1,140 @@
+FORMAT: 1A
+HOST: localhost:3344/
+
+# DemoApi
+
+This is a demo api
+
+> Version: 1.1
+>
+> [Terms of services](xxx)
+>
+> License: [MIT](xxx)
+>
+> Contact: [xxx](xxx) - xxx
+
+# Group User
+
+## User's subscribers [/v1/user/{uid}/subscriber]
+
+GET - Query user's subscribers, return page data
+
++ Request Body
+
+    + `page integer` not required - page
+
++ Response Error
+
+    + `400` - "request param error"
+    + `404` - "user not found"
+
+### User's subscribers [GET]
+
++ Parameters
+
+    + uid (number)
+
++ Response 200
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+
++ Response 400
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+            {
+                "code": 200,
+                "message": "request param error"
+            }
+
+## Subscribe user [/v1/user/subscribing]
+
+PUT - Subscribe someone
+
++ Request Header
+
+    + `Authorization string` required - User login token
+
++ Request Body
+
+    + `to integer` required - user id
+
++ Response Error
+
+    + `400` - "request param error", "request format error"
+    + `401` - "authorization failed", "token has expired"
+    + `404` - "user not found"
+    + `500` - "subscribe failed"
+
+### Subscribe user [PUT]
+
++ Request
+
+    + Headers
+
+            Content-Type: application/json
+            Authorization: xxx
+
+    + Body
+
+            {
+                "to": 2
+            }
+
++ Response 200
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+            {
+                "code": 200,
+                "message": "success"
+            }
+
++ Request
+
+    + Headers
+
+            Content-Type: application/json
+            Authorization: xxx
+
+    + Body
+
+
++ Response 400
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+            {
+                "code": 400,
+                "message": "request param error"
+            }
+
++ Response 500
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+            {
+                "code": 500,
+                "message": "subscribe failed"
+            }

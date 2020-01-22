@@ -1,0 +1,16 @@
+{
+    "token": "xxxxxx",
+    "user": {
+        "uid": 1,
+        "username": "TestUserName",
+        "profile": "TestProfile"
+    },
+    "array": [
+        {
+            "content": "123"
+        },
+        {
+             "content": "456"
+        }
+    ]
+}

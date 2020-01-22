@@ -1,0 +1,52 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Swagger UI</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:400,700|Source+Code+Pro:300,600|Titillium+Web:400,600,700" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.24.2/swagger-ui.css" >
+    <style>
+    html {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+    }
+    *, *:before, *:after {
+        box-sizing: inherit;
+    }
+    body {
+      margin:0;
+      background: #fafafa;
+    }
+    .markdown pre>code.language-json {
+        font-family: consolas;
+        font-style: italic;
+    }
+    </style>
+</head>
+<body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.20.0/swagger-ui-bundle.js"> </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.20.0/swagger-ui-standalone-preset.js"> </script>
+    <script>
+    window.onload = function() {
+        var spec = {"basePath": "/", "host": "localhost:3344", "info": {"contact": {"email": "xxx", "name": "xxx", "url": "xxx"}, "description": "This is a demo api", "license": {"name": "MIT", "url": "xxx"}, "termsOfService": "xxx", "title": "DemoApi", "version": "1.1"}, "paths": {"/v1/user/subscribing": {"put": {"consumes": ["application/json"], "description": "Subscribe someone", "operationId": "v1-user-subscribing-put", "parameters": [{"description": "user id", "in": "formData", "name": "to", "required": true, "type": "integer"}, {"description": "User login token", "in": "header", "name": "Authorization", "required": true, "type": "string"}], "produces": ["application/json"], "responses": {"200": {"description": "```json\nContent-Type: application/json; charset=utf-8\n```\n```json\n{\n    \"code\": 200,\n    \"message\": \"success\"\n}\n```"}, "400": {"description": "\"request param error\", \"request format error\"\n```json\nContent-Type: application/json; charset=utf-8\n```\n```json\n{\n    \"code\": 400,\n    \"message\": \"request param error\"\n}\n```"}, "401": {"description": "\"authorization failed\", \"token has expired\""}, "404": {"description": "\"user not found\""}, "500": {"description": "\"subscribe failed\"\n```json\n{\n    \"code\": 500,\n    \"message\": \"subscribe failed\"\n}\n```"}}, "security": [{"basicAuth": ""}], "summary": "Subscribe user", "tags": ["User"]}}, "/v1/user/{uid}/subscriber": {"get": {"consumes": ["multipart/form-data"], "description": "Query user's subscribers, return page data", "operationId": "v1-user-uid-subscriber-get", "parameters": [{"description": "user id", "in": "path", "name": "uid", "required": true, "type": "integer"}, {"description": "page", "in": "query", "name": "page", "required": false, "type": "integer"}], "produces": ["application/json"], "responses": {"400": {"description": "\"request param error\"\n```json\n{\n    \"code\": 200,\n    \"message\": \"request param error\"\n}\n```"}, "404": {"description": "\"user not found\""}}, "summary": "User's subscribers", "tags": ["User", "Subscribe"]}}}, "swagger": "2.0"};
+        window.ui = SwaggerUIBundle({
+            spec: spec,
+            dom_id: '#swagger-ui',
+            validatorUrl: null,
+            deepLinking: true,
+            presets: [
+                SwaggerUIBundle.presets.apis,
+                SwaggerUIStandalonePreset
+            ],
+            plugins: [
+                SwaggerUIBundle.plugins.DownloadUrl
+            ],
+            layout: "StandaloneLayout"
+        });
+    }
+    </script>
+</body>
+</html>

@@ -88,5 +88,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# python api_html.py main.go ./docs/api.yaml

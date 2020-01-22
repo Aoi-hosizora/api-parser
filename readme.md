@@ -7,7 +7,7 @@
 + `gen_swagger`
 
 ```bash
-python3 gen_swagger.py -m main.go -o swag.yaml -e go
+python3 gen_swagger.py -m ./demo/main.go -o ./demo/swagger.yaml -e go
 ```
 
 ```
@@ -23,7 +23,7 @@ optional arguments:
 + `gen_swagger_html`
 
 ```bash
-python3 gen_swagger_html.py -i swag.yaml -o swag.html
+python3 gen_swagger_html.py -i ./demo/swagger.yaml -o ./demo/swagger.html
 ```
 
 ```
@@ -56,9 +56,9 @@ optional arguments:
 + main
 
 ```go
-// @Title                   xxx
+// @Title                   DemoApi
 // @Version                 1.1
-// @Description             xxx
+// @Description             This is a demo api
 // @TermsOfService          xxx
 // @Host                    localhost:3344
 // @BasePath                /
@@ -68,7 +68,7 @@ optional arguments:
 // @Contact.Url             xxx
 // @Contact.Email           xxx
 
-// @DemoResponse            ./docs/demo.json
+// @DemoResponse            ./demo/demo.json
 // @Authorization.Param     Authorization header string true "User login token"
 // @Authorization.Error     401 authorization failed
 // @Authorization.Error     401 token has expired
@@ -124,9 +124,9 @@ optional arguments:
 + main
 
 ```go
-// @Title                   xxx
+// @Title                   DemoApi
 // @Version                 1.1
-// @Description             xxx
+// @Description             This is a demo api
 // @TermsOfService          xxx
 // @Host                    localhost:3344
 // @BasePath                /
@@ -136,7 +136,7 @@ optional arguments:
 // @Contact.Url             xxx
 // @Contact.Email           xxx
 
-// @DemoResponse            ./docs/demo.json
+// @DemoResponse            ./demo/demo.json
 // @Authorization.Param     Authorization header string true "User login token"
 // @Authorization.Error     401 authorization failed
 // @Authorization.Error     401 token has expired
@@ -145,37 +145,40 @@ optional arguments:
 + controller
 
 ```go
-// @Router                      /v1/user/subscribing [PUT] [Auth]
-// @Summary                     Subscribe user
-// @Description                 Subscribe someone
-// @Tag                         User
-// @Param                       to formData integer true "user id"
-// @ErrorCode                   400 request param error
-// @ErrorCode                   400 request format error
-// @ErrorCode                   404 user not found
-// @ErrorCode                   500 subscribe failed
-/* @Request 200     [Header]    Content-Type: application/json
-                                Authorization: xxx
-                    [Body]      {
-                                    "to": 2
-                                } */
-/* @Response 200    [Header]    Content-Type: application/json; charset=utf-8 
-                    [Body]      {
-                                    "code": 200,
-                                    "message": "success"
-                                } */
-/* @Request 400     [Header]    Content-Type: application/json
-                                Authorization: xxx
-                    [Body] */
-/* @Response 400    [Header]    Content-Type: application/json; charset=utf-8 
-                    [Body]      {
-                                    "code": 400,
-                                    "message": "request param error"
-                                } */
-/* @Response 500                {
-                                    "code": 500,
-                                    "message": "subscribe failed"
-                                } */
+// @Router              /v1/user/subscribing [PUT] [Auth]
+// @Summary             Subscribe user
+// @Description         Subscribe someone
+// @Tag                 User
+// @Param               to formData integer true "user id"
+// @ErrorCode           400 request param error
+// @ErrorCode           400 request format error
+// @ErrorCode           404 user not found
+// @ErrorCode           500 subscribe failed
+/* @Request 200         {|
+                            "Content-Type": "application/json",
+                            "Authorization": "xxx"
+                        |}
+                        {
+                            "to": 2
+                        } */
+/* @Response 200        {| "Content-Type": "application/json; charset=utf-8" |}
+                        {
+                            "code": 200,
+                            "message": "success"
+                        } */
+/* @Request 400         {|
+                            "Content-Type": "application/json",
+                            "Authorization": "xxx" 
+                        |} */
+/* @Response 400        {| "Content-Type": "application/json; charset=utf-8" |}
+                        {
+                            "code": 400,
+                            "message": "request param error"
+                        } */
+/* @Response 500        {
+                            "code": 500,
+                            "message": "subscribe failed"
+                        } */
 ```
 
 ### References

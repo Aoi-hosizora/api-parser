@@ -1,5 +1,6 @@
 import argparse
 import os
+import traceback
 import re
 import json
 import yaml
@@ -159,8 +160,7 @@ def gen_ctrls(all_file_paths: [], *, demo_resp: {}, auth_param: [], auth_ec: [])
                 continue
 
             content = '\n' + flag + content
-            router, method, obj = gen_ctrl(
-                content, demo_resp=demo_resp, auth_param=auth_param, auth_ec=auth_ec)
+            router, method, obj = gen_ctrl(content, demo_resp=demo_resp, auth_param=auth_param, auth_ec=auth_ec)
             if obj is not None:
                 if router not in paths:
                     paths[router] = {}
@@ -183,8 +183,7 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
         router, *route_setting = re.split(r'[ \t]', router)
         method = route_setting[0][1:-1].lower()
         is_auth = len(route_setting) >= 2 and route_setting[1] == '[Auth]'
-        oid = router.lower().replace(
-            '/', '-').replace('{', '-').replace('}', '-').replace('?', '-') + '-' + method
+        oid = router.lower().replace('/', '-').replace('{', '-').replace('}', '-').replace('?', '-') + '-' + method
         oid = oid.replace('--', '-')[1 if oid[0] == '-' else 0:]
 
         # arrays
@@ -228,23 +227,61 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
 
         resp_arr = split_array(tokens, 'Response')
         for resp in resp_arr:
-            rcode, *rjson = re.split(r'[ \t]', resp)
-            rjson = ' '.join(rjson)
-            rjson_demo = re.compile(r'\${(.+?)}').findall(rjson)
-            for dm in rjson_demo:
+            rcode, *rcontent = re.split(r'[ \t]', resp)
+            rcontent = ' '.join(rcontent)
+            rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
+            for dm in rcontent_demo:
                 if demo_resp is not None and dm in demo_resp:
                     try:
-                        rjson = rjson.replace(
-                            '${%s}' % dm, json.dumps(demo_resp[dm]))
+                        rcontent = rcontent.replace('${%s}' % dm, json.dumps(demo_resp[dm]))
                     except:
                         pass
-            rjson = json.dumps(json.loads(rjson), indent=4)
-            rjson = f'```json\n{rjson}\n```'
-            if rcode in responses:
-                rjson = '{}, {}'.format(responses[rcode]['description'], rjson)
+
+            rheader_pattern = re.compile(r'\{\|(.+?)\|\}', re.DOTALL)
+            rbody_pattern = re.compile(r'\{(.+?)\}', re.DOTALL)
+            rheaders = rheader_pattern.findall(rcontent)
+            rheader = '' if len(rheaders) == 0 else rheaders[-1]
+            rbodys = rbody_pattern.findall(rcontent)
+            rbody = ''
+            for i in range(len(rbodys) - 1, -1, -1):
+                if rbodys[i][0] != '|' and rbodys[i][-1] != '|':
+                    rbody = rbodys[i]
+                    break
+            rdesc = responses[rcode]['description'] if rcode in responses else ''
+
+            # Header
+            rheader = '{' + rheader + '}'
+            try:
+                rheader = json.loads(rheader)
+                rheader_tmp = ''
+                for k, v in rheader.items():
+                    rheader_tmp += f'{k}: {v}\n'
+                if len(rheader_tmp) != 0:
+                    rheader_tmp = rheader_tmp[:-1]
+                rheader = rheader_tmp
+            except:
+                rheader = ''
+
+            if rheader != '':
+                rheader = f'```json\n{rheader}\n```'
+                if rdesc != '':
+                    rdesc += '\n'
+                rdesc += rheader
+
+            # Body
+            if rbody != '':
+                try:
+                    rbody = f'{{{rbody}}}'
+                    rbody = json.dumps(json.loads(rbody), indent=4)
+                    rbody = f'```json\n{rbody}\n```'
+                    if rdesc != '':
+                        rdesc += '\n'
+                    rdesc += rbody
+                except:
+                    pass
 
             responses[rcode] = {
-                'description': literal(rjson)
+                'description': literal(rdesc)
             }
 
         obj = {
@@ -260,6 +297,7 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
         }
         return router, method, obj
     except:
+        traceback.print_exc()
         return '', '', None
 
 
@@ -325,5 +363,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-# python ..\..\swagger_apib_gen\gen_swagger.py -m main.go -o a.yaml -e go

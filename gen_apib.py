@@ -141,8 +141,7 @@ def gen_ctrls(all_file_paths: [], *, demo_resp: {}, auth_param: [], auth_ec: [])
                 continue
 
             content = '\n' + flag + content
-            router, method, obj = gen_ctrl(
-                content, demo_resp=demo_resp, auth_param=auth_param, auth_ec=auth_ec)
+            router, method, obj = gen_ctrl(content, demo_resp=demo_resp, auth_param=auth_param, auth_ec=auth_ec)
             if obj is not None:
                 if router not in paths:
                     paths[router] = {}
@@ -198,92 +197,84 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
             errorCodes[ecode] = emsg
 
         """
-        @Request 200    [Header]    Content-Type: application/json; charset=utf-8
-                                    Others: xxx
-                        [Body]      {
-                                        "ping": "pong"
-                                    }
+        @Request 200    {|
+                            "Content-Type": "application/json; charset=utf-8",
+                            "Others": "xxx"
+                        |} {
+                            "ping": "pong"
+                        }
         """
-        header_body_pattern = re.compile(
-            r'\[Header\](.+)?\[Body\](.+)?', re.DOTALL)
+        def parse_req_resp(req_resp_arr: []) -> []:
+            for r in req_resp_arr:
+                rcode, *rcontent = re.split(r'[ \t]', r)
+                rcontent = ' '.join(rcontent)
+                rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
+                for dm in rcontent_demo:
+                    if demo_resp is not None and dm in demo_resp:
+                        try:
+                            rcontent = rcontent.replace('${%s}' % dm, json.dumps(demo_resp[dm]))
+                        except:
+                            pass
+
+                rheader_pattern = re.compile(r'\{\|(.+?)\|\}', re.DOTALL)
+                rbody_pattern = re.compile(r'\{(.+?)\}', re.DOTALL)
+                rheaders = rheader_pattern.findall(rcontent)
+                rheader = '' if len(rheaders) == 0 else rheaders[-1]
+                rbodys = rbody_pattern.findall(rcontent)
+                rbody = ''
+                for i in range(len(rbodys) - 1, -1, -1):
+                    if rbodys[i][0] != '|' and rbodys[i][-1] != '|':
+                        rbody = rbodys[i]
+                        break
+
+                rheader = '{' + rheader + '}'
+                try:
+                    rheader = json.loads(rheader)
+                    rheader_tmp = ''
+                    if 'Content-Type' not in rheader:
+                        rheader['Content-Type'] = 'application/json; charset=utf-8'
+                    for k, v in rheader.items():
+                        rheader_tmp += f'{k}: {v}\n'
+                    if len(rheader_tmp) != 0:
+                        rheader_tmp = rheader_tmp[:-1]
+                    rheader = rheader_tmp
+                except:
+                    rheader = ''
+
+                if rbody != '':
+                    try:
+                        rbody = '{' + rbody + '}'
+                        rbody = json.dumps(json.loads(rbody), indent=4)
+                    except:
+                        rbody = ''
+
+                yield {
+                    'code': rcode,
+                    'header': rheader,
+                    'body': rbody
+                }
 
         # code page
         codePages = {}
 
-        # request
         req_arr = split_array(tokens, 'Request')
-        for req in req_arr:
-            rcode, *rcontent = re.split(r'[ \t]', req)
-            rcontent = ' '.join(rcontent)
-            rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
-            for dm in rcontent_demo:
-                if demo_resp is not None and dm in demo_resp:
-                    try:
-                        rcontent = rcontent.replace(
-                            '${%s}' % dm, json.dumps(demo_resp[dm]))
-                    except:
-                        pass
-
-            rall = header_body_pattern.findall(rcontent)
-            if len(rall) == 0:
-                rheader = ''
-                rbody = trim(rcontent)
-            else:
-                rheader = trim(rall[0][0])
-                rbody = trim(rall[0][1])
-
-            rheader = [trim(t) for t in rheader.split('\n')
-                       ] if rheader != '' else []
-            rheader = {trim(h.split(':')[0]): trim(h.split(':')[1])
-                       for h in rheader}
-            try:
-                rbody = json.dumps(json.loads(rbody), indent=4)
-            except:
-                rbody = ''
-
-            if rcode not in codePages:
-                codePages[rcode] = {}
-            codePages[rcode]['request'] = {
-                'header': rheader,
-                'body': rbody
-            }
-
-        # response
         resp_arr = split_array(tokens, 'Response')
-        for resp in resp_arr:
-            rcode, *rcontent = re.split(r'[ \t]', resp)
-            rcontent = ' '.join(rcontent)
-            rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
-            for dm in rcontent_demo:
-                if demo_resp is not None and dm in demo_resp:
-                    try:
-                        rcontent = rcontent.replace(
-                            '${%s}' % dm, json.dumps(demo_resp[dm]))
-                    except:
-                        pass
+        req_arr = list(parse_req_resp(req_arr))
+        resp_arr = list(parse_req_resp(resp_arr))
 
-            rall = header_body_pattern.findall(rcontent)
-            if len(rall) == 0:
-                rheader = ''
-                rbody = trim(rcontent)
-            else:
-                rheader = trim(rall[0][0])
-                rbody = trim(rall[0][1])
-
-            rheader = [trim(t) for t in rheader.split('\n')
-                       ] if rheader != '' else []
-            rheader = {trim(h.split(':')[0]): trim(h.split(':')[1])
-                       for h in rheader}
-            try:
-                rbody = json.dumps(json.loads(rbody), indent=4)
-            except:
-                rbody = ''
-
-            if rcode not in codePages:
-                codePages[rcode] = {}
-            codePages[rcode]['response'] = {
-                'header': rheader,
-                'body': rbody
+        for req_po in req_arr:
+            if req_po['code'] not in codePages:
+                codePages[req_po['code']] = {}
+            codePages[req_po['code']]['request'] = {
+                'header': req_po['header'],
+                'body': req_po['body']
+            }
+        for resp_po in resp_arr:
+            if resp_po['code'] not in codePages:
+                codePages[resp_po['code']] = {}
+            codePages[resp_po['code']]['response'] = {
+                'header': resp_po['header'],
+                'body': resp_po['body']
             }
 
         obj = {
@@ -294,6 +285,7 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
             'errorCodes': errorCodes,
             'codePages': codePages
         }
+
         return router, method, obj
     except Exception as ex:
         # traceback.print_exc()
@@ -332,21 +324,17 @@ HOST: {host}{basePath}
 > Version: {version}
 '''
 
-    license_info = md_url(obj['info']['license']['name'],
-                          obj['info']['license']['url'])
-    contact_info = md_url(obj['info']['contact']['name'],
-                          obj['info']['contact']['url'],
-                          other=obj['info']['contact']['email'])
+    license_info = md_url(obj['info']['license']['name'], obj['info']['license']['url'])
+    contact_info = md_url(obj['info']['contact']['name'], obj['info']['contact']['url'], other=obj['info']['contact']['email'])
     service_info = obj['info']['termsOfService']
-    service_info = f'> [Terms of services]({service_info})' if service_info != '' else ''
+    service_info = f'>\n> [Terms of services]({service_info})' if service_info != '' else ''
     if license_info != '':
-        license_info = '> License: ' + license_info
+        license_info = '>\n> License: ' + license_info
     if contact_info != '':
-        contact_info = '> Contact: ' + contact_info
+        contact_info = '>\n> Contact: ' + contact_info
 
     info = INFO_TEMPLATE.format(title=obj['info']['title'], description=obj['info']['description'],
-                                host=obj['host'], basePath=obj['basePath'],
-                                version=obj['info']['version'])
+                                host=obj['host'], basePath=obj['basePath'], version=obj['info']['version'])
     info = trim(info)
     info = cat_newline(info, service_info, 1)
     info = cat_newline(info, license_info, 1)
@@ -356,7 +344,6 @@ HOST: {host}{basePath}
     paths = {}
     for path, pos in obj['paths'].items():
         for method, po in pos.items():
-            # print(path, method)
             group = 'Default' if len(po['groups']) == 0 else po['groups'][0]
             if group not in paths:
                 paths[group] = {}
@@ -365,47 +352,57 @@ HOST: {host}{basePath}
             paths[group][path][method] = po
 
     for group, group_po in paths.items():
+        # every -> # Group
         info += '\n\n# Group ' + group
         for path, path_po in group_po.items():
+            # every -> ## Summary [xxx]
             summaries = []
             method_page_str = []
             code_page_str = []
             for method, method_po in path_po.items():
+                # every -> ### Description [GET]
                 method = method.upper()
                 summaries.append(method_po['summary'])
 
                 # method page
-
                 request_header = ''
                 request_body = ''
                 response_header = ''
                 response_body = ''
                 response_error = ''
+                code_parameters = []
+
+                def add_req_resp_hb(out: str, content: str, flag: str) -> str:
+                    out = f'+ {flag}\n' if out == '' else out
+                    out += '\n' + content
+                    return out
 
                 for param in method_po['parameters']:
-                    request_param_content = ' ' * 4 \
+                    param_content = ' ' * 4 \
                         + f'+ `{param["name"]} {param["type"]}` ' \
-                        + ('required' if param['required'] else 'not required') \
-                        + ' - ' + param['description']
-                    if param['in'] == 'header':
-                        request_header = '+ Request Header\n' if request_header == '' else request_header
-                        request_header += '\n' + request_param_content
+                        + ('required' if param['required'] else 'not required') + ' - ' + param['description']
+                    if param['in'] == 'path':
+                        param_type = param["type"]
+                        if param_type == 'integer':
+                            param_type = 'number'
+                        code_parameters.append({
+                            'name': param["name"],
+                            'type': param_type
+                        })
+                    elif param['in'] == 'header':
+                        request_header = add_req_resp_hb(request_header, param_content, 'Request Header')
                     elif param['in'] == 'response_header':
-                        response_header = '+ Response Header\n' if response_header == '' else response_header
-                        response_header += '\n' + request_param_content
+                        response_header = add_req_resp_hb(response_header, param_content, 'Response Header')
                     elif param['in'] == 'response_body':
-                        response_body = '+ Response Body\n' if response_body == '' else response_body
-                        response_body += '\n' + request_param_content
+                        response_body = add_req_resp_hb(response_body, param_content, 'Response Body')
                     else:
-                        request_body = '+ Request Body\n' if request_body == '' else request_body
-                        request_body += '\n' + request_param_content
+                        request_body = add_req_resp_hb(request_body, param_content, 'Request Body')
 
                 if len(method_po['errorCodes']) != 0:
                     response_error = '+ Response Error\n'
                 ecodes = sorted(method_po['errorCodes'].keys())
                 for ecode in ecodes:
-                    response_error += '\n' + ' ' * \
-                        4 + f'+ `{ecode}` - ' + method_po['errorCodes'][ecode]
+                    response_error += '\n' + ' ' * 4 + f'+ `{ecode}` - ' + method_po['errorCodes'][ecode]
 
                 method_page = f'{method} - {method_po["description"]}'
                 method_page = cat_newline(method_page, request_header)
@@ -415,41 +412,36 @@ HOST: {host}{basePath}
                 method_page = cat_newline(method_page, response_error)
 
                 # code_page
-
                 code_page = f'### {method_po["summary"]} [{method}]\n'
                 code_page_po = method_po['codePages']
                 codes = sorted(code_page_po.keys())
+
+                def parse_code_page(flag: str, po: {}) -> str:
+                    indent4 = '\n' + ' ' * 4
+                    indent12 = '\n' + ' ' * 12
+                    curr_code_page = f'\n+ {flag}\n' + indent4 + '+ Headers\n'
+                    if len(po['header']) != 0:
+                        header = po['header'].replace('\n', indent12)
+                        curr_code_page += indent12 + header
+                    curr_code_page += '\n' + indent4 + '+ Body\n'
+                    if len(po['body']) != 0:
+                        body = po['body'].replace('\n', indent12)
+                        curr_code_page += indent12 + body
+                    curr_code_page += '\n'
+                    return curr_code_page
+
+                if len(code_parameters) != 0:
+                    code_page += '\n+ Parameters\n'
+                    for param in code_parameters:
+                        code_page += '\n' + ' '* 4 + '+ {} ({})'.format(param['name'], param['type'])
+                    code_page += '\n'
+
                 for code in codes:
                     code_po = code_page_po[code]
                     if 'request' in code_po:
-                        request_po = code_po['request']
-                        code_page += '\n+ Request\n\n' + ' ' * 4 + '+ Headers\n'
-                        if len(request_po['header']) != 0:
-                            for k, v in request_po['header'].items():
-                                code_page += '\n' + ' ' * 12 + f'{k}: {v}'
-                        code_page += '\n\n'
-
-                        code_page += ' ' * 4 + '+ Body\n'
-                        if len(request_po['body']) != 0:
-                            body = request_po['body'].replace(
-                                '\n', '\n' + ' ' * 12)
-                            code_page += '\n' + ' ' * 12 + body
-                        code_page += '\n'
-
+                        code_page += parse_code_page('Request', code_po['request'])
                     if 'response' in code_po:
-                        response_po = code_po['response']
-                        code_page += '\n+ Response ' + code + '\n\n' + ' ' * 4 + '+ Headers\n'
-                        if len(response_po['header']) != 0:
-                            for k, v in response_po['header'].items():
-                                code_page += '\n' + ' ' * 12 + f'{k}: {v}'
-                        code_page += '\n\n'
-
-                        code_page += ' ' * 4 + '+ Body\n'
-                        if len(response_po['body']) != 0:
-                            body = response_po['body'].replace(
-                                '\n', '\n' + ' ' * 12)
-                            code_page += '\n' + ' ' * 12 + body
-                        code_page += '\n'
+                        code_page += parse_code_page('Response ' + code, code_po['response'])
 
                 method_page_str.append(method_page)
                 code_page_str.append(code_page)
