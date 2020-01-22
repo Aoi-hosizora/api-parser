@@ -84,17 +84,28 @@ def gen_main(file_path: str) -> {}:
 
     tokens = parse_content(content)
     kv = split_dict(tokens)
-    auth_param = split_array(tokens, 'Authorization.Param')
-    auth_error = split_array(tokens, 'Authorization.Error')
+
+    template_arr = split_array(tokens, 'Template')
+    template = {}
+    for tmpl in template_arr:
+        tmpl_token = re.split(r'[ \t]', tmpl)
+        if len(tmpl_token) <= 1:
+            continue
+        tmpl_content = trim(' '.join(tmpl_token[1:]))
+        tmpl_type_sp = tmpl_token[0].split('.')
+        tmpl_type = trim(tmpl_type_sp[0])
+        tmpl_type_param = trim(' '.join(tmpl_type_sp[1:]))
+        if tmpl_type not in template:
+            template[tmpl_type] = {}
+        if tmpl_type_param not in template[tmpl_type]:
+            template[tmpl_type][tmpl_type_param] = []
+        template[tmpl_type][tmpl_type_param].append(tmpl_content)
 
     out = {
         'host': field(kv, 'Host'),
         'basePath': field(kv, 'BasePath'),
-        'demoResponse': field(kv, 'DemoResponse', required=False),
-        'auth': {
-            'param': auth_param,
-            'error': auth_error
-        },
+        'demoModel': field(kv, 'DemoModel', required=False),
+        'template': template,
         'info': {
             'title': field(kv, 'Title'),
             'description': field(kv, 'Description'),
@@ -115,7 +126,7 @@ def gen_main(file_path: str) -> {}:
     return out
 
 
-def gen_ctrls(all_file_paths: [], *, demo_resp: {}, auth_param: [], auth_ec: []) -> {}:
+def gen_ctrls(all_file_paths: [], *, demo_model: {}, template: {}) -> {}:
     """
     Generate apis doc from all files
     """
@@ -141,7 +152,7 @@ def gen_ctrls(all_file_paths: [], *, demo_resp: {}, auth_param: [], auth_ec: [])
                 continue
 
             content = '\n' + flag + content
-            router, method, obj = gen_ctrl(content, demo_resp=demo_resp, auth_param=auth_param, auth_ec=auth_ec)
+            router, method, obj = gen_ctrl(content, demo_model=demo_model, template=template)
             if obj is not None:
                 if router not in paths:
                     paths[router] = {}
@@ -150,7 +161,7 @@ def gen_ctrls(all_file_paths: [], *, demo_resp: {}, auth_param: [], auth_ec: [])
     return paths
 
 
-def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (str, str, {}):
+def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
     """
     Generate api doc from a route
     :return: route, method, obj
@@ -163,15 +174,26 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
         router = field(kv, 'Router')
         router, *route_setting = re.split(r'[ \t]', router)
         method = route_setting[0][1:-1].lower()
-        is_auth = len(route_setting) >= 2 and route_setting[1] == '[Auth]'
         groups = split_array(tokens, 'Group')
         groups.extend(split_array(tokens, 'Tag'))
 
+        # template
+        templates = field(kv, 'Template', required=False)
+        templates = [trim(t) for t in templates.split(',')] if templates != '' else []
+
+        def read_tmpl(out: [], token: str):
+            for tmpl_type, tmpl_po in template.items():
+                if tmpl_type not in templates:
+                    continue
+                if token in tmpl_po:
+                    out.extend(tmpl_po[token])
+        is_auth = 'Auth' in templates
+
         # parameter
         parameters = []
-        param_arr = split_array(tokens, 'Param')
-        if is_auth and auth_param is not None:
-            param_arr.extend(auth_param)
+        param_arr = []
+        read_tmpl(param_arr, 'Param')
+        param_arr.extend(split_array(tokens, 'Param'))
         for param in param_arr:
             pname, pin, ptype, preq, *pdesc = re.split(r'[ \t]', param)
             pdesc = ' '.join(pdesc)[1:-1]
@@ -186,9 +208,9 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
 
         # errorCode
         errorCodes = {}
-        ec_arr = split_array(tokens, 'ErrorCode')
-        if is_auth and auth_ec is not None:
-            ec_arr.extend(auth_ec)
+        ec_arr = []
+        read_tmpl(ec_arr, 'ErrorCode')
+        ec_arr.extend(split_array(tokens, 'ErrorCode'))
         for ec in ec_arr:
             ecode, *emsg = re.split(r'[ \t]', ec)
             emsg = '"{}"'.format(' '.join(emsg))
@@ -210,14 +232,14 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
                 rcontent = ' '.join(rcontent)
                 rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
                 for dm in rcontent_demo:
-                    if demo_resp is not None and dm in demo_resp:
+                    if demo_model is not None and dm in demo_model:
                         try:
-                            rcontent = rcontent.replace('${%s}' % dm, json.dumps(demo_resp[dm]))
+                            rcontent = rcontent.replace('${%s}' % dm, json.dumps(demo_model[dm]))
                         except:
                             pass
 
-                rheader_pattern = re.compile(r'\{\|(.+?)\|\}', re.DOTALL)
-                rbody_pattern = re.compile(r'\{(.+?)\}', re.DOTALL)
+                rheader_pattern = re.compile(r'{\|(.+?)\|}', re.DOTALL)
+                rbody_pattern = re.compile(r'{(.+)}', re.DOTALL)
                 rheaders = rheader_pattern.findall(rcontent)
                 rheader = '' if len(rheaders) == 0 else rheaders[-1]
                 rbodys = rbody_pattern.findall(rcontent)
@@ -257,9 +279,13 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
         # code page
         codePages = {}
 
-        req_arr = split_array(tokens, 'Request')
-        resp_arr = split_array(tokens, 'Response')
+        req_arr = []
+        read_tmpl(req_arr, 'Request')
+        req_arr.extend(split_array(tokens, 'Request'))
         req_arr = list(parse_req_resp(req_arr))
+        resp_arr = []
+        read_tmpl(resp_arr, 'Response')
+        resp_arr.extend(split_array(tokens, 'Response'))
         resp_arr = list(parse_req_resp(resp_arr))
 
         for req_po in req_arr:
@@ -288,7 +314,7 @@ def gen_ctrl(content: str, *, demo_resp: {}, auth_param: [], auth_ec: []) -> (st
 
         return router, method, obj
     except Exception as ex:
-        # traceback.print_exc()
+        traceback.print_exc()
         return '', '', None
 
 
@@ -433,7 +459,7 @@ HOST: {host}{basePath}
                 if len(code_parameters) != 0:
                     code_page += '\n+ Parameters\n'
                     for param in code_parameters:
-                        code_page += '\n' + ' '* 4 + '+ {} ({})'.format(param['name'], param['type'])
+                        code_page += '\n' + ' ' * 4 + '+ {} ({})'.format(param['name'], param['type'])
                     code_page += '\n'
 
                 for code in codes:
@@ -487,26 +513,23 @@ def main():
     out = gen_main(main_file)
 
     # demo response
-    if out['demoResponse'] != '':
-        print(f'> Parsing {out["demoResponse"]}...')
+    if out['demoModel'] != '':
+        print(f'> Parsing {out["demoModel"]}...')
         try:
-            demo_resp = json.loads(
-                open(out['demoResponse'], 'r', encoding='utf-8').read())
+            demo_model = json.loads(open(out['demoModel'], 'r', encoding='utf-8').read())
         except:
-            demo_resp = None
-        out['demoResponse'] = ''
+            demo_model = None
+        out['demoModel'] = ''
     else:
-        demo_resp = None
+        demo_model = None
 
-    # global auth
-    auth_param = out['auth']['param']
-    auth_ec = out['auth']['error']
-    out['auth'] = {}
+    # global template
+    template = out['template']
+    out['template'] = {}
 
     # ctrl
     print(f'> Parsing {main_file}...')
-    paths = gen_ctrls(all_files, demo_resp=demo_resp,
-                      auth_param=auth_param, auth_ec=auth_ec)
+    paths = gen_ctrls(all_files, demo_model=demo_model, template=template)
     out['paths'] = paths
 
     # apib

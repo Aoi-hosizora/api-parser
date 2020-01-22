@@ -20,13 +20,14 @@ package main
 							}
  						} */
 /* @Response 400        {
-							"code": 200,
+							"code": 400,
 							"message": "request param error"
  						} */
 
-// @Router              /v1/user/subscribing [PUT] [Auth]
+// @Router              /v1/user/subscribing [PUT]
 // @Summary             Subscribe user
 // @Description         Subscribe someone
+// @Template 			Auth, Other
 // @Tag                 User
 // @Tag                 Subscribe
 // @Param               to formData integer true "user id"
@@ -45,15 +46,16 @@ func swagger() {
 
 }
 
-// @Router              /v1/user/subscribing [PUT] [Auth]
-// @Summary             Subscribe user
-// @Description         Subscribe someone
+// @Router              /v1/user/subscribing [DELETE]
+// @Summary             Unsubscribe user
+// @Description         Unsubscribe someone
+// @Template 			Auth
 // @Tag                 User
 // @Param               to formData integer true "user id"
 // @ErrorCode           400 request param error
 // @ErrorCode           400 request format error
 // @ErrorCode           404 user not found
-// @ErrorCode           500 subscribe failed
+// @ErrorCode           500 unsubscribe failed
 /* @Request 200         {|
 							"Content-Type": "application/json",
 							"Authorization": "xxx"
@@ -76,7 +78,7 @@ func swagger() {
  						} */
 /* @Response 500        {
 							"code": 500,
-							"message": "subscribe failed"
+							"message": "unsubscribe failed"
  						} */
 func apib() {
 

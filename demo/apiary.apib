@@ -42,76 +42,21 @@ GET - Query user's subscribers, return page data
 
     + Body
 
-
-+ Response 400
-
-    + Headers
-
-            Content-Type: application/json; charset=utf-8
-
-    + Body
-
             {
                 "code": 200,
-                "message": "request param error"
+                "message": "success",
+                "data": {
+                    "count": 1,
+                    "page": 1,
+                    "data": [
+                        {
+                            "uid": 1,
+                            "username": "TestUserName",
+                            "profile": "TestProfile"
+                        }
+                    ]
+                }
             }
-
-## Subscribe user [/v1/user/subscribing]
-
-PUT - Subscribe someone
-
-+ Request Header
-
-    + `Authorization string` required - User login token
-
-+ Request Body
-
-    + `to integer` required - user id
-
-+ Response Error
-
-    + `400` - "request param error", "request format error"
-    + `401` - "authorization failed", "token has expired"
-    + `404` - "user not found"
-    + `500` - "subscribe failed"
-
-### Subscribe user [PUT]
-
-+ Request
-
-    + Headers
-
-            Content-Type: application/json
-            Authorization: xxx
-
-    + Body
-
-            {
-                "to": 2
-            }
-
-+ Response 200
-
-    + Headers
-
-            Content-Type: application/json; charset=utf-8
-
-    + Body
-
-            {
-                "code": 200,
-                "message": "success"
-            }
-
-+ Request
-
-    + Headers
-
-            Content-Type: application/json
-            Authorization: xxx
-
-    + Body
-
 
 + Response 400
 
@@ -126,6 +71,107 @@ PUT - Subscribe someone
                 "message": "request param error"
             }
 
+## Subscribe user, Unsubscribe user [/v1/user/subscribing]
+
+PUT - Subscribe someone
+
++ Request Header
+
+    + `Authorization string` required - User login token
+    + `other integer` not required - other header
+
++ Request Body
+
+    + `to integer` required - user id
+
++ Response Error
+
+    + `400` - "request param error", "request format error"
+    + `401` - "authorization failed", "token has expired"
+    + `404` - "user not found"
+    + `500` - "subscribe failed"
+
+DELETE - Unsubscribe someone
+
++ Request Header
+
+    + `Authorization string` required - User login token
+
++ Request Body
+
+    + `to integer` required - user id
+
++ Response Error
+
+    + `400` - "request param error", "request format error"
+    + `401` - "authorization failed", "token has expired"
+    + `404` - "user not found"
+    + `500` - "unsubscribe failed"
+
+### Subscribe user [PUT]
+
++ Response 200
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+            {
+                "code": 200,
+                "message": "success",
+                "data": [
+                    {
+                        "content": "123"
+                    },
+                    {
+                        "content": "456"
+                    }
+                ]
+            }
+
+
+### Unsubscribe user [DELETE]
+
++ Request
+
+    + Headers
+
+            Content-Type: application/json
+            Authorization: xxx
+
+    + Body
+
+
++ Response 200
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+
++ Request
+
+    + Headers
+
+            Content-Type: application/json
+            Authorization: xxx
+
+    + Body
+
+
++ Response 400
+
+    + Headers
+
+            Content-Type: application/json; charset=utf-8
+
+    + Body
+
+
 + Response 500
 
     + Headers
@@ -136,5 +182,5 @@ PUT - Subscribe someone
 
             {
                 "code": 500,
-                "message": "subscribe failed"
+                "message": "unsubscribe failed"
             }

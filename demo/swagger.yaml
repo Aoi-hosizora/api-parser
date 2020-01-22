@@ -14,22 +14,22 @@ info:
   version: '1.1'
 paths:
   /v1/user/subscribing:
-    put:
+    delete:
       consumes:
       - application/json
-      description: Subscribe someone
-      operationId: v1-user-subscribing-put
+      description: Unsubscribe someone
+      operationId: v1-user-subscribing-delete
       parameters:
-      - description: user id
-        in: formData
-        name: to
-        required: true
-        type: integer
       - description: User login token
         in: header
         name: Authorization
         required: true
         type: string
+      - description: user id
+        in: formData
+        name: to
+        required: true
+        type: integer
       produces:
       - application/json
       responses:
@@ -38,23 +38,11 @@ paths:
             ```json
             Content-Type: application/json; charset=utf-8
             ```
-            ```json
-            {
-                "code": 200,
-                "message": "success"
-            }
-            ```
         '400':
           description: |-
             "request param error", "request format error"
             ```json
             Content-Type: application/json; charset=utf-8
-            ```
-            ```json
-            {
-                "code": 400,
-                "message": "request param error"
-            }
             ```
         '401':
           description: |-
@@ -64,18 +52,76 @@ paths:
             "user not found"
         '500':
           description: |-
-            "subscribe failed"
+            "unsubscribe failed"
             ```json
             {
                 "code": 500,
-                "message": "subscribe failed"
+                "message": "unsubscribe failed"
             }
             ```
+      security:
+      - basicAuth: ''
+      summary: Unsubscribe user
+      tags:
+      - User
+    put:
+      consumes:
+      - multipart/form-data
+      description: Subscribe someone
+      operationId: v1-user-subscribing-put
+      parameters:
+      - description: User login token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: other header
+        in: header
+        name: other
+        required: false
+        type: integer
+      - description: user id
+        in: formData
+        name: to
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        '200':
+          description: |-
+            ```json
+            {
+                "code": 200,
+                "message": "success",
+                "data": [
+                    {
+                        "content": "123"
+                    },
+                    {
+                        "content": "456"
+                    }
+                ]
+            }
+            ```
+        '400':
+          description: |-
+            "request param error", "request format error"
+        '401':
+          description: |-
+            "authorization failed", "token has expired"
+        '404':
+          description: |-
+            "user not found"
+        '500':
+          description: |-
+            "subscribe failed"
       security:
       - basicAuth: ''
       summary: Subscribe user
       tags:
       - User
+      - Subscribe
   /v1/user/{uid}/subscriber:
     get:
       consumes:
@@ -96,12 +142,31 @@ paths:
       produces:
       - application/json
       responses:
+        '200':
+          description: |-
+            ```json
+            {
+                "code": 200,
+                "message": "success",
+                "data": {
+                    "count": 1,
+                    "page": 1,
+                    "data": [
+                        {
+                            "uid": 1,
+                            "username": "TestUserName",
+                            "profile": "TestProfile"
+                        }
+                    ]
+                }
+            }
+            ```
         '400':
           description: |-
             "request param error"
             ```json
             {
-                "code": 200,
+                "code": 400,
                 "message": "request param error"
             }
             ```
