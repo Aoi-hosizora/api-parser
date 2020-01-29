@@ -9,6 +9,10 @@ def trim(content: str) -> str:
     return content.strip(' \t\n')
 
 
+def split_bs(content: str) -> []:
+    return re.split(r'[ \t]', content)
+
+
 def parse_content(content) -> []:
     """
     // @xxx xxx, // @xxx, /* @xxx xxx */, /* @xxx */
@@ -26,7 +30,7 @@ def split_kv(tokens: []) -> ([], []):
     """
     ks, vs = [], []
     for token in tokens:
-        sp = re.split(r'[ \t]', token)
+        sp = split_bs(token)
         val = ' '.join(sp[1:]) if len(sp) > 1 else ''
         ks.append(trim(sp[0]))
         vs.append(trim(val))
@@ -88,7 +92,7 @@ def gen_main(file_path: str) -> {}:
     template_arr = split_array(tokens, 'Template')
     template = {}
     for tmpl in template_arr:
-        tmpl_token = re.split(r'[ \t]', tmpl)
+        tmpl_token = split_bs(tmpl)
         if len(tmpl_token) <= 1:
             continue
         tmpl_content = trim(' '.join(tmpl_token[1:]))
@@ -172,14 +176,14 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
 
         # meta
         router = field(kv, 'Router')
-        router, *route_setting = re.split(r'[ \t]', router)
+        router, *route_setting = split_bs(router)
         method = route_setting[0][1:-1].lower()
         groups = split_array(tokens, 'Group')
         groups.extend(split_array(tokens, 'Tag'))
 
         # template
         templates = field(kv, 'Template', required=False)
-        templates = [trim(t) for t in templates.split(',')] if templates != '' else []
+        templates = [trim(t) for t in templates.split(' ')] if templates != '' else []
 
         def read_tmpl(out: [], token: str):
             for tmpl_type, tmpl_po in template.items():
@@ -195,16 +199,24 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         read_tmpl(param_arr, 'Param')
         param_arr.extend(split_array(tokens, 'Param'))
         for param in param_arr:
-            pname, pin, ptype, preq, *pdesc = re.split(r'[ \t]', param)
-            pdesc = ' '.join(pdesc)[1:-1]
+            pname, pin, ptype, preq, *pother = split_bs(param)
             preq = preq.lower() == 'true'
-            parameters.append({
+            pother = ' '.join(pother)
+            pother_sp = re.compile(r'"(.+?)"(.*)').findall(pother)
+            pdesc = pother_sp[0][0]
+            pdefault = trim(pother_sp[0][1])
+            obj = {
                 'name': pname,
                 'in': pin,
                 'type': ptype,
                 'required': preq,
                 'description': pdesc
-            })
+            }
+            if pdefault != '':
+                if ptype == 'integer':
+                    pdefault = int(pdefault)
+                obj['default'] = pdefault
+            parameters.append(obj)
 
         # errorCode
         errorCodes = {}
@@ -212,7 +224,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         read_tmpl(ec_arr, 'ErrorCode')
         ec_arr.extend(split_array(tokens, 'ErrorCode'))
         for ec in ec_arr:
-            ecode, *emsg = re.split(r'[ \t]', ec)
+            ecode, *emsg = split_bs(ec)
             emsg = '"{}"'.format(' '.join(emsg))
             if ecode in errorCodes:
                 emsg = '{}, {}'.format(errorCodes[ecode], emsg)
@@ -228,7 +240,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         """
         def parse_req_resp(req_resp_arr: []) -> []:
             for r in req_resp_arr:
-                rcode, *rcontent = re.split(r'[ \t]', r)
+                rcode, *rcontent = split_bs(r)
                 rcontent = ' '.join(rcontent)
                 rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
                 for dm in rcontent_demo:
@@ -405,8 +417,11 @@ HOST: {host}{basePath}
 
                 for param in method_po['parameters']:
                     param_content = ' ' * 4 \
-                        + f'+ `{param["name"]} {param["type"]}` ' \
-                        + ('required' if param['required'] else 'not required') + ' - ' + param['description']
+                        + f'+ {param["in"]}: `{param["name"]} {param["type"]}` ' \
+                        + ('required' if param['required'] else 'not required')
+                    if 'default' in param:
+                        param_content += f' (default: {param["default"]})'
+                    param_content += ' - ' + param['description']
                     if param['in'] == 'path':
                         param_type = param["type"]
                         if param_type == 'integer':

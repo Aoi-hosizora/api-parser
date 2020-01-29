@@ -38,7 +38,7 @@ optional arguments:
 + `gen_apib`
 
 ```bash
-python3 gen_apib.py -m main.go -o apiary.apib -e go
+python3 gen_apib.py -m ./demo/main.apib.go -o ./demo/apiary.apib -e go
 ```
 
 ```
@@ -54,6 +54,59 @@ optional arguments:
 ### Annotaton
 
 + See [main.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/main.go) and [ctrl.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/ctrl.go)
++ Template only support `@Param` `@ErrorCode` `@Response`
+
+### Format
+
++ Param
+    + `in`: `query` `path` `header` `body` `formData`
+    + `type`: `string` `integer` `number(float32)` `boolean`
+    + See [Param Type](https://github.com/swaggo/swag#param-type) and [Data Type](https://github.com/swaggo/swag#data-type) 
+
+```go
+// @Param uid formData integer true "user id"
+// @Param $name $in $type $required "$comment"
+```
+
++ ErrorCode
+
+```go
+// @ErrorCode 401 unauthorized user
+// @ErrorCode $code $content
+```
+
++ Template (main)
+
+```go
+// @Template Auth
+// @Template $name1 $name2 $name3
+```
+
++ Template (controller)
+
+```go
+// @Template Auth.ErrorCode 401 unauthorized user
+// @Template $name.$annotation $code $content
+```
+
++ Tag (main)
+
+```go
+// @Tag "User" "User-Controller"
+// @Tag "$name" "$description"
+```
+
++ GlobalSecurity (Only support `apiKey`)
+
+```go
+// @GlobalSecurity Jwt Authorization header
+// @GlobalSecurity $name $field $in
+```
+
++ Accept & Produce: See [Mime Types](https://github.com/swaggo/swag#mime-types)
+    + `application/json` `multipart/form-data` 
+    + `text/xml` `text/plain` `text/html`
+    + `image/png` `image/jpeg` `image/gif`
 
 ### References
 

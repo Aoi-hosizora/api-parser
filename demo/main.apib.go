@@ -14,8 +14,8 @@ package main
 
 // @Tag                         "User" "User-Controller"
 // @Tag                         "Subscribe" "Sub-Controller"
-// @GlobalSecurity              Jwt Authorization header
 // @DemoModel                   ./demo/demo.json
+// @Template Auth.Param         Authorization header string true "User login token"
 // @Template Auth.ErrorCode     401 authorization failed
 // @Template Auth.ErrorCode     401 token has expired
 // @Template Other.Param    	other header integer false "other header"

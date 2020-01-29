@@ -20,11 +20,6 @@ paths:
       description: Unsubscribe someone
       operationId: v1-user-subscribing-delete
       parameters:
-      - description: User login token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: user id
         in: formData
         name: to
@@ -60,7 +55,7 @@ paths:
             }
             ```
       security:
-      - basicAuth: ''
+      - Jwt: []
       summary: Unsubscribe user
       tags:
       - User
@@ -70,11 +65,6 @@ paths:
       description: Subscribe someone
       operationId: v1-user-subscribing-put
       parameters:
-      - description: User login token
-        in: header
-        name: Authorization
-        required: true
-        type: string
       - description: other header
         in: header
         name: other
@@ -117,7 +107,7 @@ paths:
           description: |-
             "subscribe failed"
       security:
-      - basicAuth: ''
+      - Jwt: []
       summary: Subscribe user
       tags:
       - User
@@ -129,12 +119,14 @@ paths:
       description: Query user's subscribers, return page data
       operationId: v1-user-uid-subscriber-get
       parameters:
-      - description: user id
+      - default: 1
+        description: user id
         in: path
         name: uid
         required: true
         type: integer
-      - description: page
+      - default: 1
+        description: page
         in: query
         name: page
         required: false
@@ -177,4 +169,14 @@ paths:
       tags:
       - User
       - Subscribe
+securityDefinitions:
+  Jwt:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: '2.0'
+tags:
+- description: User-Controller
+  name: User
+- description: Sub-Controller
+  name: Subscribe

@@ -1,0 +1,3 @@
+# https://github.com/github/linguist#overrides
+
+demo/* -linguist-vendored -linguist-documentation -linguist-generated linguist-detectable

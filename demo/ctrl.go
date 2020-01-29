@@ -5,8 +5,8 @@ package main
 // @Description         Query user's subscribers, return page data
 // @Tag                 User
 // @Tag                 Subscribe
-// @Param               uid path integer true "user id"
-// @Param               page query integer false "page"
+// @Param               uid path integer true "user id" 1
+// @Param               page query integer false "page" 1
 // @Accept              multipart/form-data
 // @ErrorCode           400 request param error
 // @ErrorCode           404 user not found
@@ -25,9 +25,10 @@ package main
  						} */
 
 // @Router              /v1/user/subscribing [PUT]
+// @Security            Jwt
+// @Template            Auth Other
 // @Summary             Subscribe user
 // @Description         Subscribe someone
-// @Template 			Auth, Other
 // @Tag                 User
 // @Tag                 Subscribe
 // @Param               to formData integer true "user id"
@@ -47,9 +48,10 @@ func swagger() {
 }
 
 // @Router              /v1/user/subscribing [DELETE]
+// @Security            Jwt
+// @Template            Auth
 // @Summary             Unsubscribe user
 // @Description         Unsubscribe someone
-// @Template 			Auth
 // @Tag                 User
 // @Param               to formData integer true "user id"
 // @ErrorCode           400 request param error

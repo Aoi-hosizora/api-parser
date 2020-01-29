@@ -21,7 +21,7 @@ GET - Query user's subscribers, return page data
 
 + Request Body
 
-    + `page integer` not required - page
+    + query: `page integer` not required (default: 1) - page
 
 + Response Error
 
@@ -77,12 +77,12 @@ PUT - Subscribe someone
 
 + Request Header
 
-    + `Authorization string` required - User login token
-    + `other integer` not required - other header
+    + header: `Authorization string` required - User login token
+    + header: `other integer` not required - other header
 
 + Request Body
 
-    + `to integer` required - user id
+    + formData: `to integer` required - user id
 
 + Response Error
 
@@ -95,11 +95,11 @@ DELETE - Unsubscribe someone
 
 + Request Header
 
-    + `Authorization string` required - User login token
+    + header: `Authorization string` required - User login token
 
 + Request Body
 
-    + `to integer` required - user id
+    + formData: `to integer` required - user id
 
 + Response Error
 
