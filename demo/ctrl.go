@@ -10,15 +10,7 @@ package main
 // @Accept              multipart/form-data
 // @ErrorCode           400 request param error
 // @ErrorCode           404 user not found
-/* @Response 200        {
-							"code": 200,
-							"message": "success",
-							"data": {
-								"count": 1,
-								"page": 1,
-								"data": [ ${user} ]
-							}
- 						} */
+/* @Response 200        ${resp_user} */
 /* @Response 400        {
 							"code": 400,
 							"message": "request param error"

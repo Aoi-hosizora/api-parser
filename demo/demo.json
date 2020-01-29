@@ -1,16 +1,31 @@
 {
     "token": "xxxxxx",
-    "user": {
-        "uid": 1,
-        "username": "TestUserName",
-        "profile": "TestProfile"
+    "resp_user": {
+        "code": 200,
+        "message": "success",
+        "data": {
+            "count": 1,
+            "page": 1,
+            "data": [
+                {
+                    "$ref": "#/$models/user"
+                }
+            ]
+        }
     },
     "array": [
         {
             "content": "123"
         },
         {
-             "content": "456"
+            "content": "456"
         }
-    ]
+    ],
+    "$models": {
+        "user": {
+            "uid": 1,
+            "username": "TestUserName",
+            "profile": "TestProfile"
+        }
+    }
 }

@@ -143,6 +143,9 @@ DELETE - Unsubscribe someone
 
     + Body
 
+            {
+                "to": 2
+            }
 
 + Response 200
 
@@ -152,6 +155,10 @@ DELETE - Unsubscribe someone
 
     + Body
 
+            {
+                "code": 200,
+                "message": "success"
+            }
 
 + Request
 
@@ -171,6 +178,10 @@ DELETE - Unsubscribe someone
 
     + Body
 
+            {
+                "code": 400,
+                "message": "request param error"
+            }
 
 + Response 500
 

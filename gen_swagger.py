@@ -1,17 +1,20 @@
 import argparse
-import os
-import traceback
-import re
+import ast
 import json
+import os
+import re
+import traceback
+
+import jsonref
 import yaml
 
 
 def trim(content: str) -> str:
-    return content.strip(' \t')
+    return content.strip(' \t\n')
 
 
 def split_bs(content: str) -> []:
-    return re.split(r'[ \t]', content)
+    return list(filter(None, re.split(r'[ \t]', content)))
 
 
 def stripper(data):
@@ -19,12 +22,12 @@ def stripper(data):
     for k, v in data.items():
         if isinstance(v, dict):
             v = stripper(v)
-        if not v in (u'', None, {}, []):
+        if v not in (u'', None, {}, []):
             new_data[k] = v
     return new_data
 
 
-class literal(str):
+class Literal(str):
     @staticmethod
     def literal_presenter(dumper, data):
         # https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data
@@ -68,7 +71,7 @@ def split_dict(tokens: []) -> {}:
     return kv
 
 
-def split_array(tokens: [], field: str) -> []:
+def split_array(tokens: [], array_field: str) -> []:
     """
     ['a b', 'a c'] -> ['b', 'c']
     """
@@ -76,7 +79,7 @@ def split_array(tokens: [], field: str) -> []:
     arr = []
     for idx in range(len(ks)):
         k, v = ks[idx], vs[idx]
-        if k == field:
+        if k == array_field:
             arr.append(trim(v))
     return arr
 
@@ -103,6 +106,7 @@ def gen_main(file_path: str) -> {}:
     except:
         print(f'Error: failed to open file {file_path}.')
         exit(1)
+        return
 
     tokens = parse_content(content)
     kv = split_dict(tokens)
@@ -191,6 +195,7 @@ def gen_ctrls(all_file_paths: [], *, demo_model: {}, template: {}) -> {}:
         except:
             print(f'Error: failed to open file {file_path}.')
             exit(1)
+            return
         flag = '// @Router'
         content_sp = file_content.split(flag)
         if len(content_sp) == 1:
@@ -258,16 +263,16 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
 
         for param in param_arr:
             pname, pin, ptype, preq, *pother = split_bs(param)
-            preq = preq.lower() == 'true'
+            pname, pin, ptype, preq = trim(pname), trim(pin), trim(ptype), trim(preq.lower())
             pother = ' '.join(pother)
             pother_sp = re.compile(r'"(.+?)"(.*)').findall(pother)
-            pdesc = pother_sp[0][0]
+            pdesc = trim(pother_sp[0][0])
             pdefault = trim(pother_sp[0][1])
             obj = {
                 'name': pname,
                 'in': pin,
                 'type': ptype,
-                'required': preq,
+                'required': preq == 'true',
                 'description': pdesc
             }
             if pdefault != '':
@@ -291,12 +296,13 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         ec_arr.extend(split_array(tokens, 'ErrorCode'))
         for ec in ec_arr:
             ecode, *emsg = split_bs(ec)
-            emsg = '"{}"'.format(' '.join(emsg))
+            emsg = ' '.join(emsg)
+            emsg = f'"{emsg}"'
             if ecode in responses and 'description' in responses[ecode]:
-                emsg = '{}, {}'.format(responses[ecode]['description'], emsg)
+                emsg = responses[ecode]['description'] + ', ' + emsg
 
             responses[ecode] = {
-                'description': literal(emsg)
+                'description': Literal(emsg)
             }
 
         resp_arr = []
@@ -304,61 +310,63 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         resp_arr.extend(split_array(tokens, 'Response'))
         for resp in resp_arr:
             rcode, *rcontent = split_bs(resp)
-            rcontent = ' '.join(rcontent)
-            rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
+            rcontent = trim(' '.join(rcontent))
 
-            for dm in rcontent_demo:
-                if demo_model is not None and dm in demo_model:
+            if demo_model is not None:
+                for dm in re.compile(r'\${(.+?)}').findall(rcontent):
+                    if dm not in demo_model:
+                        continue
                     try:
-                        rcontent = rcontent.replace('${%s}' % dm, json.dumps(demo_model[dm]))
+                        new_dm = json.dumps(demo_model[dm])  # <<
+                        rcontent = rcontent.replace('${%s}' % dm, new_dm)
                     except:
                         pass
 
-            rheader_pattern = re.compile(r'{\|(.+?)\|}', re.DOTALL)
-            rbody_pattern = re.compile(r'{(.+)}', re.DOTALL)
+            rheader_pattern = re.compile(r'{\|(.+)\|}', re.DOTALL)
+            rbody_pattern = re.compile(r'{([^|].*[^|]*)}', re.DOTALL)
+            rcontent = rcontent.replace('{}', '{ }')
+
             rheaders = rheader_pattern.findall(rcontent)
             rheader = '' if len(rheaders) == 0 else rheaders[-1]
             rbodys = rbody_pattern.findall(rcontent)
-            rbody = ''
-            for i in range(len(rbodys) - 1, -1, -1):
-                if rbodys[i][0] != '|' and rbodys[i][-1] != '|':
-                    rbody = rbodys[i]
-                    break
-            rdesc = responses[rcode]['description'] if rcode in responses else ''
+            rbody = '' if len(rbodys) == 0 else rbodys[-1]
+            if rcode in responses:
+                rdesc = responses[rcode]['description']
+            else:
+                rdesc = ''
 
             # Header
-            rheader = '{' + rheader + '}'
-            try:
-                rheader = json.loads(rheader)
-                rheader_tmp = ''
-                for k, v in rheader.items():
-                    rheader_tmp += f'{k}: {v}\n'
-                if len(rheader_tmp) != 0:
-                    rheader_tmp = rheader_tmp[:-1]
-                rheader = rheader_tmp
-            except:
-                rheader = ''
-
             if rheader != '':
-                rheader = f'```json\n{rheader}\n```'
-                if rdesc != '':
-                    rdesc += '\n'
-                rdesc += rheader
+                rheader = '{' + rheader + '}'
+                try:
+                    rheader_tmp = ''
+                    rheader = json.loads(rheader)
+                    for k, v in rheader.items():
+                        rheader_tmp += f'{k}: {v}\n'
+                    rheader = trim(rheader_tmp)
+
+                    if rheader != '':
+                        if rdesc != '':
+                            rdesc += '\n'
+                        rdesc += f'```json\n{rheader}\n```'
+                except:
+                    pass
 
             # Body
             if rbody != '':
                 try:
-                    rbody = f'{{{rbody}}}'
+                    rbody = '{' + rbody + '}'
                     rbody = json.dumps(json.loads(rbody), indent=4)
-                    rbody = f'```json\n{rbody}\n```'
-                    if rdesc != '':
-                        rdesc += '\n'
 
-                    rdesc += rbody
+                    if rbody != '':
+                        if rdesc != '':
+                            rdesc += '\n'
+                        rdesc += f'```json\n{rbody}\n```'
                 except:
                     pass
+
             responses[rcode] = {
-                'description': literal(rdesc)
+                'description': Literal(rdesc)
             }
 
         obj = {
@@ -404,11 +412,15 @@ def main():
     out = gen_main(main_file)
 
     # demo response
+    # https://json-spec.readthedocs.io/reference.html
     if out['demoModel'] != '':
         print(f'> Parsing {out["demoModel"]}...')
         try:
-            demo_model = json.loads(open(out['demoModel'], 'r', encoding='utf-8').read())
+            demo_model = open(out['demoModel'], 'r', encoding='utf-8').read()
+            demo_model = str(jsonref.loads(demo_model))
+            demo_model = ast.literal_eval(demo_model)
         except:
+            # traceback.print_exc()
             demo_model = None
         out['demoModel'] = ''
     else:
@@ -425,7 +437,7 @@ def main():
 
     # save
     out = stripper(out)
-    yaml.add_representer(literal, literal.literal_presenter)
+    yaml.add_representer(Literal, Literal.literal_presenter)
     print(f'> Saving {args.output}...')
     try:
         with open(args.output, 'w', encoding='utf-8') as f:

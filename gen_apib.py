@@ -1,8 +1,11 @@
 import argparse
+import ast
 import os
 import re
 import json
 import traceback
+
+import jsonref
 
 
 def trim(content: str) -> str:
@@ -241,37 +244,36 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         def parse_req_resp(req_resp_arr: []) -> []:
             for r in req_resp_arr:
                 rcode, *rcontent = split_bs(r)
-                rcontent = ' '.join(rcontent)
-                rcontent_demo = re.compile(r'\${(.+?)}').findall(rcontent)
-                for dm in rcontent_demo:
-                    if demo_model is not None and dm in demo_model:
+                rcontent = trim(' '.join(rcontent))
+                
+                if demo_model is not None:
+                    for dm in re.compile(r'\${(.+?)}').findall(rcontent):
+                        if dm not in demo_model:
+                            continue
                         try:
-                            rcontent = rcontent.replace('${%s}' % dm, json.dumps(demo_model[dm]))
+                            new_dm = json.dumps(demo_model[dm])
+                            rcontent = rcontent.replace('${%s}' % dm, new_dm)
                         except:
                             pass
 
-                rheader_pattern = re.compile(r'{\|(.+?)\|}', re.DOTALL)
-                rbody_pattern = re.compile(r'{(.+)}', re.DOTALL)
+                rheader_pattern = re.compile(r'{\|(.+)\|}', re.DOTALL)
+                rbody_pattern = re.compile(r'{([^|].*[^|]*)}', re.DOTALL)
+                rcontent = rcontent.replace('{}', '{ }')
+
                 rheaders = rheader_pattern.findall(rcontent)
                 rheader = '' if len(rheaders) == 0 else rheaders[-1]
                 rbodys = rbody_pattern.findall(rcontent)
-                rbody = ''
-                for i in range(len(rbodys) - 1, -1, -1):
-                    if rbodys[i][0] != '|' and rbodys[i][-1] != '|':
-                        rbody = rbodys[i]
-                        break
+                rbody = '' if len(rbodys) == 0 else rbodys[-1]
 
                 rheader = '{' + rheader + '}'
                 try:
-                    rheader = json.loads(rheader)
                     rheader_tmp = ''
+                    rheader = json.loads(rheader)
                     if 'Content-Type' not in rheader:
                         rheader['Content-Type'] = 'application/json; charset=utf-8'
                     for k, v in rheader.items():
                         rheader_tmp += f'{k}: {v}\n'
-                    if len(rheader_tmp) != 0:
-                        rheader_tmp = rheader_tmp[:-1]
-                    rheader = rheader_tmp
+                    rheader = trim(rheader_tmp)
                 except:
                     rheader = ''
 
@@ -280,6 +282,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                         rbody = '{' + rbody + '}'
                         rbody = json.dumps(json.loads(rbody), indent=4)
                     except:
+                        traceback.print_exc()
                         rbody = ''
 
                 yield {
@@ -531,13 +534,16 @@ def main():
     if out['demoModel'] != '':
         print(f'> Parsing {out["demoModel"]}...')
         try:
-            demo_model = json.loads(open(out['demoModel'], 'r', encoding='utf-8').read())
+            demo_model = open(out['demoModel'], 'r', encoding='utf-8').read()
+            demo_model = str(jsonref.loads(demo_model))
+            demo_model = ast.literal_eval(demo_model)
         except:
+            # traceback.print_exc()
             demo_model = None
         out['demoModel'] = ''
     else:
         demo_model = None
-
+    
     # global template
     template = out['template']
     out['template'] = {}

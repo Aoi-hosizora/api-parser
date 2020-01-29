@@ -33,11 +33,23 @@ paths:
             ```json
             Content-Type: application/json; charset=utf-8
             ```
+            ```json
+            {
+                "code": 200,
+                "message": "success"
+            }
+            ```
         '400':
           description: |-
             "request param error", "request format error"
             ```json
             Content-Type: application/json; charset=utf-8
+            ```
+            ```json
+            {
+                "code": 400,
+                "message": "request param error"
+            }
             ```
         '401':
           description: |-

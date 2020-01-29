@@ -2,6 +2,10 @@
 
 + Auto generate swagger and apib restful api document
 
+### Dependence
+
++ `jsonref 0.2` (`json` module don't support `$ref` json)
+
 ### Usage
 
 + `gen_swagger`
@@ -108,6 +112,50 @@ optional arguments:
     + `text/xml` `text/plain` `text/html`
     + `image/png` `image/jpeg` `image/gif`
 
+### Demo Model
+
++ Support `$ref` type of json
+
+```json
+{
+    "resp_success": {
+        "code": 200,
+        "message": "success"
+    },
+    "resp_data": {
+        "code": 200,
+        "message": "success",
+        "data": {
+            "$ref": "#/$models/some-data"
+        }
+    },
+    "resp_datas": {
+        "code": 200,
+        "message": "success",
+        "data": [
+            {
+                "$ref": "#/$models/some-data"
+            }
+        ]
+    },
+    "$models": {
+        "base": {
+            "base-field": "base-value"
+        },
+        "some-data": {
+            "field1": "value1",
+            "field2": "value2",
+            "field3": {
+                "$ref": "#/$models/base"
+            }
+        }
+    }
+}
+```
+
 ### References
 
 + [How can I control what scalar form PyYAML uses for my data?](https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data)
++ [JSON Reference](https://json-spec.readthedocs.io/reference.html)
++ [gazpachoking/jsonref](https://github.com/gazpachoking/jsonref)
++ [Python how convert single quotes to double quotes to format as json string](https://stackoverflow.com/questions/47659782/python-how-convert-single-quotes-to-double-quotes-to-format-as-json-string/55739462#55739462)
