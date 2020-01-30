@@ -16,8 +16,8 @@ package main
 // @Tag                         "Subscribe" "Sub-Controller"
 // @GlobalSecurity              Jwt Authorization header
 // @DemoModel                   ./demo/demo.json
-// @Template Auth.ErrorCode     401 authorization failed
-// @Template Auth.ErrorCode     401 token has expired
+// @Template Auth.ResponseDesc  401 authorization failed
+// @Template Auth.ResponseDesc  401 token has expired
 // @Template Other.Param    	other header integer false "other header"
 func main() {
 

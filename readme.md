@@ -1,6 +1,7 @@
 # swagger_apib_gen
 
 + Auto generate swagger and apib restful api document
++ **Apib generator isn't under maintenance**
 
 ### Dependence
 
@@ -58,7 +59,7 @@ optional arguments:
 ### Annotaton
 
 + See [main.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/main.go) and [ctrl.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/ctrl.go)
-+ Template only support `@Param` `@ErrorCode` `@Response`
++ Template only support `@Param` `@ResponseDesc` `@ResponseHeader` `@Response`
 
 ### Format
 
@@ -68,15 +69,22 @@ optional arguments:
     + See [Param Type](https://github.com/swaggo/swag#param-type) and [Data Type](https://github.com/swaggo/swag#data-type) 
 
 ```go
-// @Param uid formData integer true "user id"
-// @Param $name $in $type $required "$comment"
+// @Param uid   formData integer true      false            "user id"
+// @Param $name $in      $type   $required $allowEmptyValue "$comment"
 ```
 
-+ ErrorCode
++ ResponseDesc
 
 ```go
-// @ErrorCode 401 unauthorized user
-// @ErrorCode $code $content
+// @ResponseDesc 401   unauthorized user
+// @ResponseDesc $code $content
+```
+
++ ResponseHeader & Response
+
+```go
+// @ResponseHeader 200   { "Content-Type": "application/json; charset=utf-8" }
+// @ResponseHeader $code $json
 ```
 
 + Template (main)
@@ -89,22 +97,22 @@ optional arguments:
 + Template (controller)
 
 ```go
-// @Template Auth.ErrorCode 401 unauthorized user
+// @Template Auth.ResponseDesc 401   unauthorized user
 // @Template $name.$annotation $code $content
 ```
 
 + Tag (main)
 
 ```go
-// @Tag "User" "User-Controller"
+// @Tag "User"  "User-Controller"
 // @Tag "$name" "$description"
 ```
 
 + GlobalSecurity (Only support `apiKey`)
 
 ```go
-// @GlobalSecurity Jwt Authorization header
-// @GlobalSecurity $name $field $in
+// @GlobalSecurity Jwt   Authorization header
+// @GlobalSecurity $name $field        $in
 ```
 
 + Accept & Produce: See [Mime Types](https://github.com/swaggo/swag#mime-types)
@@ -114,7 +122,7 @@ optional arguments:
 
 ### Demo Model
 
-+ Support `$ref` type of json
++ Support `$ref` type of json in `@ResponseDesc` `@ResponseHeader` `@Response`
 
 ```json
 {

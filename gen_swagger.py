@@ -27,11 +27,14 @@ def stripper(data):
     return new_data
 
 
-class Literal(str):
-    @staticmethod
-    def literal_presenter(dumper, data):
-        # https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data
+def literal_presenter(dumper, data):
+    # https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data
+    if len(data.splitlines()) > 1:  # check for multiline string
         return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+
+
+yaml.add_representer(str, literal_presenter)
 
 
 def parse_content(content) -> []:
@@ -262,8 +265,8 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         param_arr.extend(split_array(tokens, 'Param'))
 
         for param in param_arr:
-            pname, pin, ptype, preq, *pother = split_bs(param)
-            pname, pin, ptype, preq = trim(pname), trim(pin), trim(ptype), trim(preq.lower())
+            pname, pin, ptype, preq, pempty, *pother = split_bs(param)
+            pname, pin, ptype, preq, pempty = trim(pname), trim(pin), trim(ptype), trim(preq.lower()), trim(pempty.lower())
             pother = ' '.join(pother)
             pother_sp = re.compile(r'"(.+?)"(.*)').findall(pother)
             pdesc = trim(pother_sp[0][0])
@@ -273,6 +276,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 'in': pin,
                 'type': ptype,
                 'required': preq == 'true',
+                'allowEmptyValue': pempty == 'true',
                 'description': pdesc
             }
             if pdefault != '':
@@ -291,83 +295,65 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
 
         # response
         responses = {}
-        ec_arr = []
-        read_tmpl(ec_arr, 'ErrorCode')
-        ec_arr.extend(split_array(tokens, 'ErrorCode'))
-        for ec in ec_arr:
-            ecode, *emsg = split_bs(ec)
-            emsg = ' '.join(emsg)
-            emsg = f'"{emsg}"'
-            if ecode in responses and 'description' in responses[ecode]:
-                emsg = responses[ecode]['description'] + ', ' + emsg
 
-            responses[ecode] = {
-                'description': Literal(emsg)
-            }
-
-        resp_arr = []
-        read_tmpl(resp_arr, 'Response')
-        resp_arr.extend(split_array(tokens, 'Response'))
-        for resp in resp_arr:
-            rcode, *rcontent = split_bs(resp)
-            rcontent = trim(' '.join(rcontent))
-
+        def replace_demo_model(content: str, demo_model: {}) -> str:
             if demo_model is not None:
-                for dm in re.compile(r'\${(.+?)}').findall(rcontent):
+                for dm in re.compile(r'\${(.+?)}').findall(content):
                     if dm not in demo_model:
                         continue
                     try:
                         new_dm = json.dumps(demo_model[dm])  # <<
-                        rcontent = rcontent.replace('${%s}' % dm, new_dm)
+                        content = content.replace('${%s}' % dm, new_dm)
                     except:
                         pass
+            return content
 
-            rheader_pattern = re.compile(r'{\|(.+)\|}', re.DOTALL)
-            rbody_pattern = re.compile(r'{([^|].*[^|]*)}', re.DOTALL)
-            rcontent = rcontent.replace('{}', '{ }')
+        # Desc
+        resp_desc_arr = []
+        read_tmpl(resp_desc_arr, 'ResponseDesc')
+        resp_desc_arr.extend(split_array(tokens, 'ResponseDesc'))
+        for desc in resp_desc_arr:
+            rcode, *rmsg = split_bs(desc)
+            rmsg = ' '.join(rmsg)
+            rmsg = replace_demo_model(rmsg, demo_model)
+            if rcode in responses and 'description' in responses[rcode]:
+                rmsg = responses[rcode]['description'] + ', ' + rmsg
+            if rcode not in responses:
+                responses[rcode] = {}
+            responses[rcode]['description'] = rmsg
 
-            rheaders = rheader_pattern.findall(rcontent)
-            rheader = '' if len(rheaders) == 0 else rheaders[-1]
-            rbodys = rbody_pattern.findall(rcontent)
-            rbody = '' if len(rbodys) == 0 else rbodys[-1]
-            if rcode in responses:
-                rdesc = responses[rcode]['description']
-            else:
-                rdesc = ''
+        # Header
+        resp_header_arr = []
+        read_tmpl(resp_header_arr, 'ResponseHeader')
+        resp_header_arr.extend(split_array(tokens, 'ResponseHeader'))
+        for hdr in resp_header_arr:
+            rcode, *rheader = split_bs(hdr)
+            rheader = ' '.join(rheader)
+            rheader = replace_demo_model(rheader, demo_model)
+            rheader = json.loads(rheader)
 
-            # Header
-            if rheader != '':
-                rheader = '{' + rheader + '}'
-                try:
-                    rheader_tmp = ''
-                    rheader = json.loads(rheader)
-                    for k, v in rheader.items():
-                        rheader_tmp += f'{k}: {v}\n'
-                    rheader = trim(rheader_tmp)
+            if rcode not in responses:
+                responses[rcode] = {}
+            if 'headers' not in responses[rcode]:
+                responses[rcode]['headers'] = {}
+            for k, v in rheader.items():
+                responses[rcode]['headers'][k] = {
+                    'type': 'string',
+                    'description': v
+                }
 
-                    if rheader != '':
-                        if rdesc != '':
-                            rdesc += '\n'
-                        rdesc += f'```json\n{rheader}\n```'
-                except:
-                    pass
-
-            # Body
-            if rbody != '':
-                try:
-                    rbody = '{' + rbody + '}'
-                    rbody = json.dumps(json.loads(rbody), indent=4)
-
-                    if rbody != '':
-                        if rdesc != '':
-                            rdesc += '\n'
-                        rdesc += f'```json\n{rbody}\n```'
-                except:
-                    pass
-
-            responses[rcode] = {
-                'description': Literal(rdesc)
-            }
+        # Body
+        resp_example_arr = []
+        read_tmpl(resp_example_arr, 'Response')
+        resp_example_arr.extend(split_array(tokens, 'Response'))
+        for resp in resp_example_arr:
+            rcode, *rjson = split_bs(resp)
+            rjson = trim(' '.join(rjson))
+            rjson = replace_demo_model(rjson, demo_model)
+            rjson = json.dumps(json.loads(rjson), indent=4, ensure_ascii=False)
+            if rcode not in responses:
+                responses[rcode] = {}
+            responses[rcode]['example'] = rjson
 
         obj = {
             'operationId': oid,
@@ -377,8 +363,8 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             'consumes': accepts,
             'produces': produces,
             'parameters': parameters,
-            'responses': responses,
-            'security': securities
+            'security': securities,
+            'responses': responses
         }
         return router, method, obj
     except:
@@ -437,7 +423,6 @@ def main():
 
     # save
     out = stripper(out)
-    yaml.add_representer(Literal, Literal.literal_presenter)
     print(f'> Saving {args.output}...')
     try:
         with open(args.output, 'w', encoding='utf-8') as f:

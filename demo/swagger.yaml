@@ -25,47 +25,40 @@ paths:
         name: to
         required: true
         type: integer
+        allowEmptyValue: true
       produces:
       - application/json
       responses:
         '200':
-          description: |-
-            ```json
-            Content-Type: application/json; charset=utf-8
-            ```
-            ```json
+          example: |-
             {
                 "code": 200,
                 "message": "success"
             }
-            ```
+          headers:
+            Content-Type:
+              description: application/json; charset=utf-8
+              type: string
         '400':
-          description: |-
-            "request param error", "request format error"
-            ```json
-            Content-Type: application/json; charset=utf-8
-            ```
-            ```json
+          description: '"request param error", "request format error"'
+          example: |-
             {
                 "code": 400,
                 "message": "request param error"
             }
-            ```
-        '401':
-          description: |-
-            "authorization failed", "token has expired"
+          headers:
+            Content-Type:
+              description: application/json; charset=utf-8
+              type: string
         '404':
-          description: |-
-            "user not found"
+          description: '"user not found"'
         '500':
-          description: |-
-            "unsubscribe failed"
-            ```json
+          description: '"unsubscribe failed"'
+          example: |-
             {
                 "code": 500,
                 "message": "unsubscribe failed"
             }
-            ```
       security:
       - Jwt: []
       summary: Unsubscribe user
@@ -91,8 +84,7 @@ paths:
       - application/json
       responses:
         '200':
-          description: |-
-            ```json
+          example: |-
             {
                 "code": 200,
                 "message": "success",
@@ -105,19 +97,12 @@ paths:
                     }
                 ]
             }
-            ```
         '400':
-          description: |-
-            "request param error", "request format error"
-        '401':
-          description: |-
-            "authorization failed", "token has expired"
+          description: '"request param error", "request format error"'
         '404':
-          description: |-
-            "user not found"
+          description: '"user not found"'
         '500':
-          description: |-
-            "subscribe failed"
+          description: '"subscribe failed"'
       security:
       - Jwt: []
       summary: Subscribe user
@@ -147,8 +132,7 @@ paths:
       - application/json
       responses:
         '200':
-          description: |-
-            ```json
+          example: |-
             {
                 "code": 200,
                 "message": "success",
@@ -164,19 +148,15 @@ paths:
                     ]
                 }
             }
-            ```
         '400':
-          description: |-
-            "request param error"
-            ```json
+          description: '"request param error"'
+          example: |-
             {
                 "code": 400,
                 "message": "request param error"
             }
-            ```
         '404':
-          description: |-
-            "user not found"
+          description: '"user not found"'
       summary: User's subscribers
       tags:
       - User
