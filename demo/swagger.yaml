@@ -51,6 +51,7 @@ paths:
         allowEmptyValue: true
         description: page
         default: 1
+      security: []
       responses:
         '400':
           description: |-
@@ -108,7 +109,7 @@ paths:
         allowEmptyValue: false
         description: user id
       security:
-      - {}
+      - Jwt: []
       responses:
         '401':
           description: |-
@@ -154,7 +155,7 @@ paths:
         allowEmptyValue: false
         description: user id
       security:
-      - {}
+      - Jwt: []
       responses:
         '401':
           description: |-
@@ -208,11 +209,13 @@ paths:
       parameters:
       - name: param
         in: body
+        type: object
         required: true
         allowEmptyValue: false
         description: login param
         schema:
           $ref: '#/definitions/LoginParam'
+      security: []
       responses:
         '200':
           description: |-
@@ -260,8 +263,15 @@ definitions:
         example: 86400
       other:
         description: other param
+        type: object
         allowEmptyValue: true
         $ref: '#/definitions/LoginParamRef'
+      others:
+        description: other param
+        type: array
+        allowEmptyValue: true
+        items:
+          $ref: '#/definitions/LoginParamRef'
   LoginParamRef:
     title: LoginParamRef
     description: ref used

@@ -1,10 +1,11 @@
 package main
 
 // @Model      LoginParam "body of login param"
-// @Property   username string          true  false "username"     ExampleUsername
-// @Property   password string          true  false "password"     ExamplePassword
-// @Property   expire   integer         false true  "login expire" 86400
-// @Property   other    #LoginParamRef  false true  "other param"
+// @Property   username string                 true  false "username"     ExampleUsername
+// @Property   password string                 true  false "password"     ExamplePassword
+// @Property   expire   integer                false true  "login expire" 86400
+// @Property   other    object(#LoginParamRef) false true  "other param"
+// @Property   others   array(#LoginParamRef)  false true  "other param"
 
 // @Model      LoginParamRef "ref used"
 // @Property   other string false true "other param"

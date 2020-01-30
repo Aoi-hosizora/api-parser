@@ -9,6 +9,8 @@
 
 ### Usage
 
++ Usage in project see [vidorg/vid_backend](https://github.com/vidorg/vid_backend)
+
 + `gen_swagger`
 
 ```bash
@@ -144,11 +146,12 @@ optional arguments:
 // @Model    LoginParam "body of login param"
 // @Model    $name      "$description"
 
-// @Property username string          true      false            "username"     ExampleUsername
-// @Property password string          true      false            "password"     ExamplePassword
-// @Property expire   integer         false     true             "login expire" 86400
-// @Property other    #LoginParamRef  false     true             "other param"
-// @Property $name    $type           $required $allowEmptyValue $description   $example
+// @Property username string                 true      false            "username"     ExampleUsername
+// @Property password string                 true      false            "password"     ExamplePassword
+// @Property expire   integer                false     true             "login expire" 86400
+// @Property other    object(#LoginParamRef) false     true             "other param"
+// @Property others   array(#LoginParamRef)  false     true             "other param"
+// @Property $name    $type($model)          $required $allowEmptyValue $description   $example
 ```
 
 ### Demo Model

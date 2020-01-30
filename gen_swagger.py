@@ -17,32 +17,40 @@ def split_bs(content: str) -> []:
     return list(filter(None, re.split(r'[ \t]', content)))
 
 
-def stripper(data):
-    if data in (u'', None, {}, [], set()):
+def stripper(dict_data, ex_key: []):
+    """
+    strip dict list and set
+    :param dict_data:
+    :param ex_key: except keys
+    """
+    if dict_data in (u'', None, {}, [], set()):
         return None
-    elif isinstance(data, dict):
+    elif isinstance(dict_data, dict):
         new_dict = {}
-        for k, v in data.items():
-            out = stripper(v)
-            if out is not None:
-                new_dict[k] = out
+        for k, v in dict_data.items():
+            if k in ex_key:
+                new_dict[k] = v
+            else:
+                out = stripper(v, ex_key)
+                if out is not None:
+                    new_dict[k] = out
         return new_dict
-    elif isinstance(data, list):
+    elif isinstance(dict_data, list):
         new_list = []
-        for v in data:
-            out = stripper(v)
+        for v in dict_data:
+            out = stripper(v, ex_key)
             if out is not None:
                 new_list.append(out)
         return new_list
-    elif isinstance(data, set):
+    elif isinstance(dict_data, set):
         new_set = set()
-        for v in data:
-            out = stripper(v)
+        for v in dict_data:
+            out = stripper(v, ex_key)
             if out is not None:
                 new_set.add(out)
         return new_set
     else:
-        return data
+        return dict_data
 
 
 class Literal(str):
@@ -311,11 +319,11 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             obj = {
                 'name': pname,
                 'in': pin,
-                'type': ptype,  # x
+                'type': ptype,
                 'required': preq == 'true',
                 'allowEmptyValue': pempty == 'true',
                 'description': pdesc,
-                'default': pdefault  # x
+                'default': pdefault
             }
             if pdefault != '':
                 if ptype == 'integer':
@@ -326,8 +334,6 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             if len(obj_name) != 0:
                 obj_name = trim(obj_name[0])
                 del obj['type']
-                if 'default' in obj:
-                    del obj['default']
                 obj['schema'] = {
                     '$ref': f'#/definitions/{obj_name}'
                 }
@@ -345,17 +351,17 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         # response
         responses = {}
 
-        def replace_demo_model(content: str, demo_model: {}) -> str:
-            if demo_model is not None:
-                for dm in re.compile(r'\${(.+?)}').findall(content):
-                    if dm not in demo_model:
+        def replace_demo_model(dm_content: str, in_demo_model: {}) -> str:
+            if in_demo_model is not None:
+                for dm in re.compile(r'\${(.+?)}').findall(dm_content):
+                    if dm not in in_demo_model:
                         continue
                     try:
-                        new_dm = json.dumps(demo_model[dm])  # <<
-                        content = content.replace('${%s}' % dm, new_dm)
+                        new_dm = json.dumps(in_demo_model[dm])  # <<
+                        dm_content = dm_content.replace('${%s}' % dm, new_dm)
                     except:
                         pass
-            return content
+            return dm_content
 
         # Desc
         resp_desc_arr = []
@@ -399,9 +405,10 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             for rm in resp_model_arr:
                 rcode, *rmodel = split_bs(rm)
                 rmodel = trim(' '.join(rmodel))
-                if rmodel[0] == '#':
-                    obj_name = trim(rmodel[1:])
-                    obj_name = trim(split_bs(obj_name)[0])
+                obj_ptn = re.compile(r'#(.+)')
+                obj_name = obj_ptn.findall(rmodel)
+                if len(rmodel) != 0:
+                    obj_name = trim(obj_name[0])
                     if rcode not in responses:
                         responses[rcode] = {}
                     responses[rcode]['schema'] = {
@@ -485,13 +492,18 @@ def gen_model(content: str) -> (str, {}):
                 if ptype == 'integer':
                     obj['example'] = int(pexample)
 
-            obj_ptn = re.compile(r'#(.+)')
+            obj_ptn = re.compile(r'(.+?)\(#(.+)\)')
             obj_name = obj_ptn.findall(ptype)
             if len(obj_name) != 0:
-                obj_name = trim(obj_name[0])
-                del obj['type']
-                del obj['example']
-                obj['$ref'] = f'#/definitions/{obj_name}'
+                obj_type = trim(obj_name[0][0])
+                obj_name = trim(obj_name[0][1])
+                obj['type'] = obj_type
+                if obj_type == 'array':
+                    obj['items'] = {
+                        '$ref': f'#/definitions/{obj_name}'
+                    }
+                else:
+                    obj['$ref'] = f'#/definitions/{obj_name}'
 
             prop_po[pname] = obj
 
@@ -559,7 +571,7 @@ def main():
     out['definitions'] = defs
 
     # save
-    out = stripper(out)
+    out = stripper(out, ex_key=['security'])
     print(f'> Saving {args.output}...')
     try:
         with open(args.output, 'w', encoding='utf-8') as f:
