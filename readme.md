@@ -12,7 +12,7 @@
 + `gen_swagger`
 
 ```bash
-python3 gen_swagger.py -m ./demo/main.go -o ./demo/swagger.yaml -e go
+python3 gen_swagger.py -m ./demo/swag/main.go -o ./demo/swagger.yaml -e go
 ```
 
 ```
@@ -43,7 +43,7 @@ optional arguments:
 + `gen_apib`
 
 ```bash
-python3 gen_apib.py -m ./demo/main.apib.go -o ./demo/apiary.apib -e go
+python3 gen_apib.py -m ./demo/apib/main.go -o ./demo/apiary.apib -e go
 ```
 
 ```
@@ -81,11 +81,28 @@ optional arguments:
 // @ResponseDesc $code $content
 ```
 
-+ ResponseHeader & Response
++ ResponseHeader
 
 ```go
 // @ResponseHeader 200   { "Content-Type": "application/json; charset=utf-8" }
 // @ResponseHeader $code $json
+```
+
++ ResponseModel
+
+```go
+// @ResponseModel  200   #Result
+// @ResponseHeader $code $mdoel
+```
+
++ Response
+
+```go
+/* @Response 200    { 
+                        "code": 200, 
+                        "message": "success"
+                    } */
+// @Response $code $json
 ```
 
 + Template (main)
@@ -181,3 +198,4 @@ optional arguments:
 + [JSON Reference](https://json-spec.readthedocs.io/reference.html)
 + [gazpachoking/jsonref](https://github.com/gazpachoking/jsonref)
 + [Python how convert single quotes to double quotes to format as json string](https://stackoverflow.com/questions/47659782/python-how-convert-single-quotes-to-double-quotes-to-format-as-json-string/55739462#55739462)
++ [OpenAPI 2 Adding Examples](https://swagger.io/docs/specification/2-0/adding-examples/)

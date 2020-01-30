@@ -9,6 +9,10 @@ package main
 // @Model      LoginParamRef "ref used"
 // @Property   other string false true "other param"
 
+// @Model      Result "global result model"
+// @Property   code    integer true false "status code"    200
+// @Property   message string  true false "status message" success
+
 // @Router              /v1/user/{uid}/subscriber [GET]
 // @Summary             User's subscribers
 // @Description         Query user's subscribers, return page data
@@ -59,19 +63,18 @@ func func1() {
 // @ResponseDesc 404    "user not found"
 // @ResponseDesc 500    "unsubscribe failed"
 // @ResponseHeader 200  { "Content-Type": "application/json; charset=utf-8" }
-/* @Response 200 		{
-							"code": 200,
-							"message": "success"
- 						} */
+/* @ResponseModel 200 	#Result */
 // @ResponseHeader 400  { "Content-Type": "application/json; charset=utf-8" }
 /* @Response 400 		{
 							"code": 400,
 							"message": "request param error"
  						} */
+/* @ResponseModel 400 	#Result */
 /* @Response 500        {
 							"code": 500,
 							"message": "unsubscribe failed"
  						} */
+/* @ResponseModel 500 	#Result */
 func func2() {
 
 }

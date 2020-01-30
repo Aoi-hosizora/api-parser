@@ -18,13 +18,31 @@ def split_bs(content: str) -> []:
 
 
 def stripper(data):
-    new_data = {}
-    for k, v in data.items():
-        if isinstance(v, dict):
-            v = stripper(v)
-        if v not in (u'', None, {}, []):
-            new_data[k] = v
-    return new_data
+    if data in (u'', None, {}, [], set()):
+        return None
+    elif isinstance(data, dict):
+        new_dict = {}
+        for k, v in data.items():
+            out = stripper(v)
+            if out is not None:
+                new_dict[k] = out
+        return new_dict
+    elif isinstance(data, list):
+        new_list = []
+        for v in data:
+            out = stripper(v)
+            if out is not None:
+                new_list.append(out)
+        return new_list
+    elif isinstance(data, set):
+        new_set = set()
+        for v in data:
+            out = stripper(v)
+            if out is not None:
+                new_set.add(out)
+        return new_set
+    else:
+        return data
 
 
 class Literal(str):
@@ -33,9 +51,7 @@ class Literal(str):
 
 def literal_presenter(dumper, data):
     # https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data
-    if len(data.splitlines()) > 1:  # check for multiline string
-        return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
-    return dumper.represent_scalar('tag:yaml.org,2002:str', data)
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 
 
 yaml.add_representer(Literal, literal_presenter)
@@ -298,12 +314,12 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 'type': ptype,  # x
                 'required': preq == 'true',
                 'allowEmptyValue': pempty == 'true',
-                'description': pdesc
+                'description': pdesc,
+                'default': pdefault  # x
             }
             if pdefault != '':
                 if ptype == 'integer':
-                    pdefault = int(pdefault)
-                obj['default'] = pdefault  # x
+                    obj['default'] = int(pdefault)
 
             obj_ptn = re.compile(r'#(.+)')
             obj_name = obj_ptn.findall(ptype)
@@ -375,18 +391,40 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                     'description': v
                 }
 
-        # Body
-        resp_example_arr = []
-        read_tmpl(resp_example_arr, 'Response')
-        resp_example_arr.extend(split_array(tokens, 'Response'))
-        for resp in resp_example_arr:
-            rcode, *rjson = split_bs(resp)
-            rjson = trim(' '.join(rjson))
-            rjson = replace_demo_model(rjson, demo_model)
-            rjson = json.dumps(json.loads(rjson), indent=4, ensure_ascii=False)
-            if rcode not in responses:
-                responses[rcode] = {}
-            responses[rcode]['example'] = Literal(rjson)
+        # Model
+        try:
+            resp_model_arr = []
+            read_tmpl(resp_model_arr, 'ResponseModel')
+            resp_model_arr.extend(split_array(tokens, 'ResponseModel'))
+            for rm in resp_model_arr:
+                rcode, *rmodel = split_bs(rm)
+                rmodel = trim(' '.join(rmodel))
+                if rmodel[0] == '#':
+                    obj_name = trim(rmodel[1:])
+                    obj_name = trim(split_bs(obj_name)[0])
+                    if rcode not in responses:
+                        responses[rcode] = {}
+                    responses[rcode]['schema'] = {
+                        "$ref": f"#/definitions/{obj_name}"
+                    }
+
+            # Body
+            resp_example_arr = []
+            read_tmpl(resp_example_arr, 'Response')
+            resp_example_arr.extend(split_array(tokens, 'Response'))
+            for resp in resp_example_arr:
+                rcode, *rjson = split_bs(resp)
+                rjson = trim(' '.join(rjson))
+                rjson = replace_demo_model(rjson, demo_model)
+                rjson = json.loads(rjson)
+                rjson = json.dumps(rjson, indent=2, ensure_ascii=False)
+                if rcode not in responses:
+                    responses[rcode] = {}
+                responses[rcode]['examples'] = {
+                    'application/json': Literal(rjson)
+                }
+        except:
+            traceback.print_exc()
 
         obj = {
             'operationId': oid,
@@ -525,7 +563,7 @@ def main():
     print(f'> Saving {args.output}...')
     try:
         with open(args.output, 'w', encoding='utf-8') as f:
-            yaml.dump(out, stream=f, encoding='utf-8', allow_unicode=True)
+            yaml.dump(out, stream=f, encoding='utf-8', allow_unicode=True, sort_keys=False)
     except:
         print(f'Error: failed to save file {args.output}.')
         exit(1)
