@@ -43,6 +43,10 @@ TEMPLATE = """
     div#swagger-ui div.model-box { /* swagger example json display */
         display: block;
     }
+    div#swagger-ui textarea {
+        font-family: consolas;
+        font-size: 14px;
+    }
     </style>
 </head>
 <body>
@@ -90,6 +94,7 @@ def main():
     except:
         print(f'Error: failed to open file {args.input}.')
         exit(1)
+        return
 
     spec = yaml.load(content, Loader=yaml.FullLoader)
     html = TEMPLATE % json.dumps(spec)

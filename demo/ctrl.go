@@ -1,5 +1,14 @@
 package main
 
+// @Model      LoginParam "body of login param"
+// @Property   username string          true  false "username"     ExampleUsername
+// @Property   password string          true  false "password"     ExamplePassword
+// @Property   expire   integer         false true  "login expire" 86400
+// @Property   other    #LoginParamRef  false true  "other param"
+
+// @Model      LoginParamRef "ref used"
+// @Property   other string false true "other param"
+
 // @Router              /v1/user/{uid}/subscriber [GET]
 // @Summary             User's subscribers
 // @Description         Query user's subscribers, return page data
@@ -43,7 +52,6 @@ func func1() {
 // @Security            Jwt
 // @Template            Auth
 // @Summary             Unsubscribe user
-// @Description         Unsubscribe someone
 // @Tag                 User
 // @Param               to formData integer true false "user id"
 // @ResponseDesc 400    "request param error"
@@ -65,5 +73,15 @@ func func1() {
 							"message": "unsubscribe failed"
  						} */
 func func2() {
+
+}
+
+// @Router         /v1/auth/login [POST]
+// @Summary        Login
+// @Tag            Authorization
+// @Param          param body #LoginParam true false "login param"
+// @ResponseDesc   200 "OK"
+/* @Response 200   ${resp_user} */
+func func3() {
 
 }

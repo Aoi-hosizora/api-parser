@@ -1,4 +1,41 @@
 basePath: /
+definitions:
+  LoginParam:
+    description: body of login param
+    properties:
+      expire:
+        allowEmptyValue: true
+        description: login expire
+        example: 86400
+        type: integer
+      other:
+        $ref: '#/definitions/LoginParamRef'
+        allowEmptyValue: true
+        description: other param
+      password:
+        allowEmptyValue: false
+        description: password
+        example: ExamplePassword
+        type: string
+      username:
+        allowEmptyValue: false
+        description: username
+        example: ExampleUsername
+        type: string
+    required:
+    - username
+    - password
+    title: LoginParam
+    type: object
+  LoginParamRef:
+    description: ref used
+    properties:
+      other:
+        allowEmptyValue: true
+        description: other param
+        type: string
+    title: LoginParamRef
+    type: object
 host: localhost:3344
 info:
   contact:
@@ -13,19 +50,55 @@ info:
   title: DemoApi
   version: '1.1'
 paths:
+  /v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      operationId: v1-auth-login-post
+      parameters:
+      - allowEmptyValue: false
+        description: login param
+        in: body
+        name: param
+        required: true
+        schema:
+          $ref: '#/definitions/LoginParam'
+      produces:
+      - application/json
+      responses:
+        '200':
+          description: '"OK"'
+          example: |-
+            {
+                "code": 200,
+                "message": "success",
+                "data": {
+                    "count": 1,
+                    "page": 1,
+                    "data": [
+                        {
+                            "uid": 1,
+                            "username": "TestUserName",
+                            "profile": "TestProfile"
+                        }
+                    ]
+                }
+            }
+      summary: Login
+      tags:
+      - Authorization
   /v1/user/subscribing:
     delete:
       consumes:
       - application/json
-      description: Unsubscribe someone
       operationId: v1-user-subscribing-delete
       parameters:
-      - description: user id
+      - allowEmptyValue: false
+        description: user id
         in: formData
         name: to
         required: true
         type: integer
-        allowEmptyValue: true
       produces:
       - application/json
       responses:
@@ -50,6 +123,8 @@ paths:
             Content-Type:
               description: application/json; charset=utf-8
               type: string
+        '401':
+          description: authorization failed, token has expired
         '404':
           description: '"user not found"'
         '500':
@@ -70,12 +145,14 @@ paths:
       description: Subscribe someone
       operationId: v1-user-subscribing-put
       parameters:
-      - description: other header
+      - allowEmptyValue: false
+        description: other header
         in: header
         name: other
         required: false
         type: integer
-      - description: user id
+      - allowEmptyValue: false
+        description: user id
         in: formData
         name: to
         required: true
@@ -99,6 +176,8 @@ paths:
             }
         '400':
           description: '"request param error", "request format error"'
+        '401':
+          description: authorization failed, token has expired
         '404':
           description: '"user not found"'
         '500':
@@ -116,13 +195,15 @@ paths:
       description: Query user's subscribers, return page data
       operationId: v1-user-uid-subscriber-get
       parameters:
-      - default: 1
+      - allowEmptyValue: false
+        default: 1
         description: user id
         in: path
         name: uid
         required: true
         type: integer
-      - default: 1
+      - allowEmptyValue: true
+        default: 1
         description: page
         in: query
         name: page

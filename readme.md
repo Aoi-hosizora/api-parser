@@ -65,12 +65,13 @@ optional arguments:
 
 + Param
     + `in`: `query` `path` `header` `body` `formData`
-    + `type`: `string` `integer` `number(float32)` `boolean`
+    + `type`: `string` `integer` `number(float32)` `boolean` `#xxx`
     + See [Param Type](https://github.com/swaggo/swag#param-type) and [Data Type](https://github.com/swaggo/swag#data-type) 
 
 ```go
-// @Param uid   formData integer true      false            "user id"
-// @Param $name $in      $type   $required $allowEmptyValue "$comment"
+// @Param uid   formData integer     true      false            "user id"    1
+// @Param param body     #LoginParam true      false            "loginParam"
+// @Param $name $in      $type       $required $allowEmptyValue "$comment"   ($default)
 ```
 
 + ResponseDesc
@@ -119,6 +120,19 @@ optional arguments:
     + `application/json` `multipart/form-data` 
     + `text/xml` `text/plain` `text/html`
     + `image/png` `image/jpeg` `image/gif`
+
++ Model & Property
+
+```go
+// @Model    LoginParam "body of login param"
+// @Model    $name      "$description"
+
+// @Property username string          true      false            "username"     ExampleUsername
+// @Property password string          true      false            "password"     ExamplePassword
+// @Property expire   integer         false     true             "login expire" 86400
+// @Property other    #LoginParamRef  false     true             "other param"
+// @Property $name    $type           $required $allowEmptyValue $description   $example
+```
 
 ### Demo Model
 

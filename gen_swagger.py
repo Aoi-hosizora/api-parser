@@ -27,6 +27,10 @@ def stripper(data):
     return new_data
 
 
+class Literal(str):
+    pass
+
+
 def literal_presenter(dumper, data):
     # https://stackoverflow.com/questions/8640959/how-can-i-control-what-scalar-form-pyyaml-uses-for-my-data
     if len(data.splitlines()) > 1:  # check for multiline string
@@ -34,7 +38,7 @@ def literal_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data)
 
 
-yaml.add_representer(str, literal_presenter)
+yaml.add_representer(Literal, literal_presenter)
 
 
 def parse_content(content) -> []:
@@ -187,11 +191,13 @@ def gen_main(file_path: str) -> {}:
     return out
 
 
-def gen_ctrls(all_file_paths: [], *, demo_model: {}, template: {}) -> {}:
+def gen_files(all_file_paths: [], *, demo_model: {}, template: {}) -> ({}, {}):
     """
-    Generate apis doc from all files
+    Generate apis and models from all files
+    :return: paths, defs
     """
     paths = {}
+    defs = {}
     for file_path in all_file_paths:
         try:
             file_content = open(file_path, 'r', encoding='utf-8').read()
@@ -199,28 +205,40 @@ def gen_ctrls(all_file_paths: [], *, demo_model: {}, template: {}) -> {}:
             print(f'Error: failed to open file {file_path}.')
             exit(1)
             return
+
         flag = '// @Router'
         content_sp = file_content.split(flag)
-        if len(content_sp) == 1:
-            continue
+        if len(content_sp) > 1:
+            for content in content_sp:
+                en = file_content.index(content)
+                st = en - len(flag)
+                if st < 0:
+                    continue
+                if file_content[st:en] != flag:
+                    continue
+                content = '\n' + flag + content
+                router, method, obj = gen_ctrl(content, demo_model=demo_model, template=template)
+                if obj is not None:
+                    if router not in paths:
+                        paths[router] = {}
+                    paths[router][method] = obj
 
-        for content in content_sp:
-            en = file_content.index(content)
-            st = en - len(flag)
-            if st < 0:
-                continue
-            # print(file_content[st:en])
-            if file_content[st:en] != flag:
-                continue
+        flag = '// @Model'
+        content_sp = file_content.split(flag)
+        if len(content_sp) > 1:
+            for content in content_sp:
+                en = file_content.index(content)
+                st = en - len(flag)
+                if st < 0:
+                    continue
+                if file_content[st:en] != flag:
+                    continue
+                content = '\n' + flag + content
+                model_name, model_po = gen_model(content)
+                if model_po is not None:
+                    defs[model_name] = model_po
 
-            content = '\n' + flag + content
-            router, method, obj = gen_ctrl(content, demo_model=demo_model, template=template)
-            if obj is not None:
-                if router not in paths:
-                    paths[router] = {}
-                paths[router][method] = obj
-
-    return paths
+    return paths, defs
 
 
 def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
@@ -266,15 +284,18 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
 
         for param in param_arr:
             pname, pin, ptype, preq, pempty, *pother = split_bs(param)
-            pname, pin, ptype, preq, pempty = trim(pname), trim(pin), trim(ptype), trim(preq.lower()), trim(pempty.lower())
-            pother = ' '.join(pother)
-            pother_sp = re.compile(r'"(.+?)"(.*)').findall(pother)
+            pname, pin, ptype = trim(pname), trim(pin), trim(ptype)
+            preq, pempty = trim(preq.lower()), trim(pempty.lower())
+
+            pother = trim(' '.join(pother))
+            pother_sp = re.compile(r'"(.*)"(.*)').findall(pother)
             pdesc = trim(pother_sp[0][0])
             pdefault = trim(pother_sp[0][1])
+
             obj = {
                 'name': pname,
                 'in': pin,
-                'type': ptype,
+                'type': ptype,  # x
                 'required': preq == 'true',
                 'allowEmptyValue': pempty == 'true',
                 'description': pdesc
@@ -282,7 +303,19 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             if pdefault != '':
                 if ptype == 'integer':
                     pdefault = int(pdefault)
-                obj['default'] = pdefault
+                obj['default'] = pdefault  # x
+
+            obj_ptn = re.compile(r'#(.+)')
+            obj_name = obj_ptn.findall(ptype)
+            if len(obj_name) != 0:
+                obj_name = trim(obj_name[0])
+                del obj['type']
+                if 'default' in obj:
+                    del obj['default']
+                obj['schema'] = {
+                    '$ref': f'#/definitions/{obj_name}'
+                }
+
             parameters.append(obj)
 
         # security
@@ -320,7 +353,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 rmsg = responses[rcode]['description'] + ', ' + rmsg
             if rcode not in responses:
                 responses[rcode] = {}
-            responses[rcode]['description'] = rmsg
+            responses[rcode]['description'] = Literal(rmsg)
 
         # Header
         resp_header_arr = []
@@ -353,12 +386,12 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             rjson = json.dumps(json.loads(rjson), indent=4, ensure_ascii=False)
             if rcode not in responses:
                 responses[rcode] = {}
-            responses[rcode]['example'] = rjson
+            responses[rcode]['example'] = Literal(rjson)
 
         obj = {
             'operationId': oid,
             'summary': field(kv, 'Summary'),
-            'description': field(kv, 'Description'),
+            'description': field(kv, 'Description', required=False),
             'tags': tags,
             'consumes': accepts,
             'produces': produces,
@@ -368,8 +401,73 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         }
         return router, method, obj
     except:
-        traceback.print_exc()
+        # traceback.print_exc()
         return '', '', None
+
+
+def gen_model(content: str) -> (str, {}):
+    """
+    Generate definition doc from a model
+    :return: name, obj
+    """
+    try:
+        tokens = parse_content(content)
+        kv = split_dict(tokens)
+
+        # @Model LoginParam "parameter of login"
+        # @Property username string true true "name of user" example
+
+        # meta
+        model = field(kv, 'Model')
+        model_sp = split_bs(model)
+        title = trim(model_sp[0])
+        description = trim(' '.join(model_sp[1:])).strip('"')
+
+        # prop
+        prop_po = {}
+        requires = []
+        props = split_array(tokens, 'Property')
+        for prop in props:
+            pname, ptype, preq, pempty, *pother = split_bs(prop)
+            pname, ptype, preq, pempty = trim(pname), trim(ptype), trim(preq) == "true", trim(pempty) == "true"
+            pother = trim(' '.join(pother))
+            pother_sp = re.compile(r'"(.*)"(.*)').findall(pother)
+            pdesc = trim(pother_sp[0][0])
+            pexample = trim(pother_sp[0][1])
+
+            if preq:
+                requires.append(pname)
+            obj = {
+                'description': pdesc,
+                'type': ptype,
+                'allowEmptyValue': pempty,
+                'example': pexample
+            }
+            if pexample != '':
+                if ptype == 'integer':
+                    obj['example'] = int(pexample)
+
+            obj_ptn = re.compile(r'#(.+)')
+            obj_name = obj_ptn.findall(ptype)
+            if len(obj_name) != 0:
+                obj_name = trim(obj_name[0])
+                del obj['type']
+                del obj['example']
+                obj['$ref'] = f'#/definitions/{obj_name}'
+
+            prop_po[pname] = obj
+
+        obj = {
+            'title': title,
+            'description': description,
+            'type': 'object',
+            'required': requires,
+            'properties': prop_po
+        }
+        return title, obj
+    except:
+        # traceback.print_exc()
+        return '', None
 
 
 def parse():
@@ -418,8 +516,9 @@ def main():
 
     # ctrl
     print(f'> Parsing {main_file}...')
-    paths = gen_ctrls(all_files, demo_model=demo_model, template=template)
-    out['paths'].update(paths)
+    paths, defs = gen_files(all_files, demo_model=demo_model, template=template)
+    out['paths'] = paths
+    out['definitions'] = defs
 
     # save
     out = stripper(out)
