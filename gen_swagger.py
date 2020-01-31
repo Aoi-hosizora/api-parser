@@ -17,6 +17,14 @@ def split_bs(content: str) -> []:
     return list(filter(None, re.split(r'[ \t]', content)))
 
 
+def split_comma(content: str, t: str) -> []:
+    ctns = content.replace(',', ',,').replace('\,,', ',').split(',,')
+    if trim(t) == 'integer':
+        return [int(trim(ctn)) for ctn in ctns]
+    else:
+        return [trim(ctn) for ctn in ctns]
+
+
 def stripper(dict_data, ex_key: []):
     """
     strip dict list and set
@@ -161,17 +169,20 @@ def gen_main(file_path: str) -> {}:
             template[tmpl_type][tmpl_type_param] = []
         template[tmpl_type][tmpl_type_param].append(tmpl_content)
 
-    # @Tag "Authorization" "Auth-Controller"
+    # @Tag Authorization "Auth-Controller"
     tag_po = []
     tags = split_array(tokens, 'Tag')
     for tag in tags:
-        tag_sp = re.compile(r'"(.+?)"').findall(tag)
-        if len(tag_sp) < 2:
-            continue
-        tag_po.append({
-            'name': trim(tag_sp[0]),
-            'description': tag_sp[1]
-        })
+        tag_sp = split_bs(tag)
+        tag_name = trim(tag_sp[0])
+        tag_other = trim(' '.join(tag_sp[1:]))
+        tag_other = re.compile(r'"(.*)"').findall(tag_other)
+        if len(tag_other) != 0:
+            tag_desc = trim(tag_other[0])
+            tag_po.append({
+                'name': tag_name,
+                'description': tag_desc
+            })
 
     # @GlobalSecurity Jwt Authorization header
     securities_po = {}
@@ -325,9 +336,21 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 'description': pdesc,
                 'default': pdefault
             }
+
             if pdefault != '':
                 if ptype == 'integer':
-                    obj['default'] = int(pdefault)
+                    obj['default'] = int(obj['default'])
+
+            # enum -> string(enum:a,b,c)
+            enum_ptn = re.compile(r'(.+)\(enum:(.+)\)')
+            enum_name = enum_ptn.findall(ptype)
+            if len(enum_name) != 0:
+                ptype = trim(enum_name[0][0])
+                obj['type'] = ptype
+                penum = trim(enum_name[0][1])
+                obj['enum'] = split_comma(penum, ptype)
+
+            # object -> #Result
 
             obj_ptn = re.compile(r'#(.+)')
             obj_name = obj_ptn.findall(ptype)
@@ -463,10 +486,7 @@ def gen_model(content: str) -> (str, {}):
         # @Property username string true true "name of user" example
 
         # meta
-        model = field(kv, 'Model')
-        model_sp = split_bs(model)
-        title = trim(model_sp[0])
-        description = trim(' '.join(model_sp[1:])).strip('"')
+        title = field(kv, 'Model')
 
         # prop
         prop_po = {}
@@ -488,14 +508,25 @@ def gen_model(content: str) -> (str, {}):
                 'allowEmptyValue': pempty,
                 'example': pexample
             }
+
             if pexample != '':
                 if ptype == 'integer':
-                    obj['example'] = int(pexample)
+                    obj['example'] = int(obj['example'])
 
-            obj_ptn = re.compile(r'(.+?)\(#(.+)\)')
+            # enum -> string(enum:a,b,c)
+            enum_ptn = re.compile(r'(.+)\(enum:(.+)\)')
+            enum_name = enum_ptn.findall(ptype)
+            if len(enum_name) != 0:
+                ptype = trim(enum_name[0][0])
+                obj['type'] = ptype
+                penum = trim(enum_name[0][1])
+                obj['enum'] = split_comma(penum, ptype)
+
+            # nest -> object(#Result)
+            obj_ptn = re.compile(r'(.+)\(#(.+)\)')
             obj_name = obj_ptn.findall(ptype)
             if len(obj_name) != 0:
-                obj_type = trim(obj_name[0][0])
+                obj_type = trim(obj_name[0][0])  # allow array
                 obj_name = trim(obj_name[0][1])
                 obj['type'] = obj_type
                 if obj_type == 'array':
@@ -509,8 +540,8 @@ def gen_model(content: str) -> (str, {}):
 
         obj = {
             'title': title,
-            'description': description,
-            'type': 'object',
+            'description': field(kv, 'Description', required=False),
+            'type': 'object',  # default array
             'required': requires,
             'properties': prop_po
         }

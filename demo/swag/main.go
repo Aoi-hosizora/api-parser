@@ -12,8 +12,8 @@ package main
 // @Contact.Url                 xxx
 // @Contact.Email               xxx
 
-// @Tag                         "User" "User-Controller"
-// @Tag                         "Subscribe" "Sub-Controller"
+// @Tag                         User "User-Controller"
+// @Tag                         Subscribe "Sub-Controller"
 // @GlobalSecurity              Jwt Authorization header
 // @DemoModel                   ./demo/demo.json
 // @Template Auth.ResponseDesc  401 authorization failed

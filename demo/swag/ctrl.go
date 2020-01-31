@@ -1,19 +1,5 @@
 package main
 
-// @Model      LoginParam "body of login param"
-// @Property   username string                 true  false "username"     ExampleUsername
-// @Property   password string                 true  false "password"     ExamplePassword
-// @Property   expire   integer                false true  "login expire" 86400
-// @Property   other    object(#LoginParamRef) false true  "other param"
-// @Property   others   array(#LoginParamRef)  false true  "other param"
-
-// @Model      LoginParamRef "ref used"
-// @Property   other string false true "other param"
-
-// @Model      Result "global result model"
-// @Property   code    integer true false "status code"    200
-// @Property   message string  true false "status message" success
-
 // @Router              /v1/user/{uid}/subscriber [GET]
 // @Summary             User's subscribers
 // @Description         Query user's subscribers, return page data
@@ -38,6 +24,7 @@ package main
 // @Tag                 User
 // @Tag                 Subscribe
 // @Param               to formData integer true false "user id"
+// @Param               to2 formData integer(enum:1,2,3) true false "user id"
 // @Accept              multipart/form-data
 // @Produce             application/json
 // @ResponseDesc 400    "request param error"

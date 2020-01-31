@@ -1,13 +1,13 @@
 # swagger_apib_gen
 
-+ Auto generate swagger and apib restful api document
++ Auto generate swagger2 and apib restful api document
 + **Apib generator isn't under maintenance**
 
-### Dependence
+## Dependence
 
 + `jsonref 0.2` (`json` module don't support `$ref` json)
 
-### Usage
+## Usage
 
 + Usage in project see [vidorg/vid_backend](https://github.com/vidorg/vid_backend)
 
@@ -19,7 +19,6 @@ python3 gen_swagger.py -m ./demo/swag/main.go -o ./demo/swagger.yaml -e go
 
 ```
 usage: gen_swagger.py [-h] -m MAIN -o OUTPUT [-e [EXT [EXT ...]]]
-
 optional arguments:
   -h, --help                                   show this help message and exit
   -m MAIN, --main MAIN                         path of main file containing swagger config
@@ -35,7 +34,6 @@ python3 gen_swagger_html.py -i ./demo/swagger.yaml -o ./demo/swagger.html
 
 ```
 usage: gen_swagger_html.py [-h] -i INPUT -o OUTPUT
-
 optional arguments:
   -h, --help                   show this help message and exit
   -i INPUT, --input INPUT      path of input yaml file
@@ -50,7 +48,6 @@ python3 gen_apib.py -m ./demo/apib/main.go -o ./demo/apiary.apib -e go
 
 ```
 usage: gen_apib.py [-h] -m MAIN -o OUTPUT [-e [EXT [EXT ...]]]
-
 optional arguments:
   -h, --help                                   show this help message and exit
   -m MAIN, --main MAIN                         path of main file containing swagger config
@@ -58,46 +55,138 @@ optional arguments:
   -e [EXT [EXT ...]], --ext [EXT [EXT ...]]    extensions of files wanted to parse
 ```
 
-### Annotaton
+## Annotaton
 
 + See [main.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/main.go) and [ctrl.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/ctrl.go)
-+ Template only support `@Param` `@ResponseDesc` `@ResponseHeader` `@Response`
 
-### Format
+### Main File Format
 
-+ Param
++ Meta data (only single annotation)
+
+```go
+// @Title
+// @Version
+// @Description
+// @TermsOfService
+// @Host
+// @BasePath
+// @License.Name
+// @License.Url
+// @Contact.Name
+// @Contact.Url
+// @Contact.Email
+```
+
++ Tag (multiple)
+
+```go
+// @Tag User      "User-Controller"
+// @Tag Subscribe "Sub-Controller"
+// @Tag $tag      "$description"
+```
+
++ DemoModel (single)
+    + see [Demo Model](#demo-model)
+
+```go
+// @DemoModel ./demo/demo.json
+// @DemoModel $jsonPath
+```
+
++ GlobalSecurity (multiple) 
+    + only support `apiKey`
+
+```go
+// @GlobalSecurity Jwt   Authorization header
+// @GlobalSecurity $name $field        $in
+```
+
++ Template (multiple)
+    + only support `@Param` `@ResponseDesc` `@ResponseHeader` `@Response`
+
+```go
+// @Template Auth.ResponseDesc 401 unauthorized user
+// @Template Page.Param        other header integer false false "other header"
+// @Template $name.$annotation $content
+```
+
+### Controller File Format
+
++ Meta data (single)
+
+```go
+// @Router      xxx/{id}/xxx [GET]
+// @Summary     xxx
+// @Description xxx
+```
+
++ Tag (multiple)
+
+```go
+// @Tag User
+// @Tag Subscribe
+// @Tag $tag
+```
+
++ Param (multiple)
     + `in`: `query` `path` `header` `body` `formData`
     + `type`: `string` `integer` `number(float32)` `boolean` `#xxx`
     + See [Param Type](https://github.com/swaggo/swag#param-type) and [Data Type](https://github.com/swaggo/swag#data-type) 
 
 ```go
-// @Param uid   formData integer     true      false            "user id"    1
-// @Param param body     #LoginParam true      false            "loginParam"
-// @Param $name $in      $type       $required $allowEmptyValue "$comment"   ($default)
+// @Param uid   formData integer        true      false            "user id"    1
+// @Param param body     #LoginParam    true      false            "loginParam"
+// @Param $name $in      $type          $required $allowEmptyValue "$comment"   ($default)
 ```
 
-+ ResponseDesc
++ Template (single)
 
 ```go
+// @Template Auth   Page
+// @Template $name1 $name2 $name3
+```
+
++ Security (multiple)
+
+```go
+// @Security Jwt
+// @Security $name
+```
+
++ Accept & Produce (multiple)
+    + `application/json` `multipart/form-data` `text/xml` `text/plain` `text/html`
+    + see [Mime Types](https://github.com/swaggo/swag#mime-types)
+
+```go
+// @Accept  multipart/form-data
+// @Produce application/json
+// @Accpet  $mimeType
+// @Produce $mimeType
+```
+
++ ResponseDesc (multiple)
+
+```go
+// @ResponseDesc 400   request param error
 // @ResponseDesc 401   unauthorized user
 // @ResponseDesc $code $content
 ```
 
-+ ResponseHeader
++ ResponseHeader (single)
 
 ```go
-// @ResponseHeader 200   { "Content-Type": "application/json; charset=utf-8" }
+// @ResponseHeader 200   {"Content-Type": "application/json; charset=utf-8" }
 // @ResponseHeader $code $json
 ```
 
-+ ResponseModel
++ ResponseModel (single)
 
 ```go
 // @ResponseModel  200   #Result
-// @ResponseHeader $code $mdoel
+// @ResponseHeader $code #$mdoel
 ```
 
-+ Response
++ Response (single)
 
 ```go
 /* @Response 200    { 
@@ -107,51 +196,57 @@ optional arguments:
 // @Response $code $json
 ```
 
-+ Template (main)
+### Model File Format
+
++ Meta data (single)
 
 ```go
-// @Template Auth
-// @Template $name1 $name2 $name3
+// @Model       LoginParam
+// @Description body of login param
 ```
 
-+ Template (controller)
++ Property (mutiple)
 
 ```go
-// @Template Auth.ResponseDesc 401   unauthorized user
-// @Template $name.$annotation $code $content
-```
-
-+ Tag (main)
-
-```go
-// @Tag "User"  "User-Controller"
-// @Tag "$name" "$description"
-```
-
-+ GlobalSecurity (Only support `apiKey`)
-
-```go
-// @GlobalSecurity Jwt   Authorization header
-// @GlobalSecurity $name $field        $in
-```
-
-+ Accept & Produce: See [Mime Types](https://github.com/swaggo/swag#mime-types)
-    + `application/json` `multipart/form-data` 
-    + `text/xml` `text/plain` `text/html`
-    + `image/png` `image/jpeg` `image/gif`
-
-+ Model & Property
-
-```go
-// @Model    LoginParam "body of login param"
-// @Model    $name      "$description"
-
 // @Property username string                 true      false            "username"     ExampleUsername
-// @Property password string                 true      false            "password"     ExamplePassword
 // @Property expire   integer                false     true             "login expire" 86400
 // @Property other    object(#LoginParamRef) false     true             "other param"
 // @Property others   array(#LoginParamRef)  false     true             "other param"
 // @Property $name    $type($model)          $required $allowEmptyValue $description   $example
+```
+
+### Type Format
+
++ Param
+
+```go
+// @Param xxx integer
+// @Param xxx string
+
+// @Param xxx #Result
+// @Param xxx #Param
+
+// @Param xxx string(enum:a,2,3\,4) -> {"a", "2", "3,4"}
+// @Param xxx integer(enum:1,2,3,4) -> {1, 2, 3, 4}
+```
+
++ Model
+
+```go
+// @Property xxx integer
+// @Property xxx string
+
+// @Property xxx object(#Param)
+// @Property xxx array(#Param)
+
+// @Property xxx string(enum:a,2,3\,4)
+// @Property xxx integer(enum:1,2,3,4)
+```
+
++ ResponseModel
+
+```go
+// @ResponseModel 200 #UserDto
 ```
 
 ### Demo Model

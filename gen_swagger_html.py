@@ -90,6 +90,7 @@ def parse():
 def main():
     args = parse()
     try:
+        print(f'> Reading {args.input}...')
         content = open(args.input, 'r', encoding='utf-8').read()
     except:
         print(f'Error: failed to open file {args.input}.')
@@ -100,6 +101,7 @@ def main():
     html = TEMPLATE % json.dumps(spec)
 
     try:
+        print(f'> Saving {args.output}...')
         with open(args.output, 'w') as f:
             f.write(html)
     except:

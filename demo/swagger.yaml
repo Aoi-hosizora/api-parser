@@ -108,6 +108,16 @@ paths:
         required: true
         allowEmptyValue: false
         description: user id
+      - name: to2
+        in: formData
+        type: integer
+        required: true
+        allowEmptyValue: false
+        description: user id
+        enum:
+        - 1
+        - 2
+        - 3
       security:
       - Jwt: []
       responses:
@@ -209,7 +219,6 @@ paths:
       parameters:
       - name: param
         in: body
-        type: object
         required: true
         allowEmptyValue: false
         description: login param
@@ -272,6 +281,23 @@ definitions:
         allowEmptyValue: true
         items:
           $ref: '#/definitions/LoginParamRef'
+      enum:
+        description: other param
+        type: string
+        allowEmptyValue: true
+        enum:
+        - a
+        - '2'
+        - 3,4
+      enum2:
+        description: other param
+        type: integer
+        allowEmptyValue: true
+        enum:
+        - 5
+        - 6
+        - 7
+        - 8
   LoginParamRef:
     title: LoginParamRef
     description: ref used
