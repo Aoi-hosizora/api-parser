@@ -131,6 +131,7 @@ optional arguments:
 + Param (multiple)
     + `in`: `query` `path` `header` `body` `formData`
     + `type`: `string` `integer` `number(float32)` `boolean` `#xxx`
+    + `allowEmptyValue: *` means not set `allowEmptyValue` value
     + See [Param Type](https://github.com/swaggo/swag#param-type) and [Data Type](https://github.com/swaggo/swag#data-type) 
 
 ```go
@@ -183,7 +184,7 @@ optional arguments:
 
 ```go
 // @ResponseModel  200   #Result
-// @ResponseHeader $code #$mdoel
+// @ResponseModel  $code $mdoel
 ```
 
 + Response (single)
@@ -201,18 +202,19 @@ optional arguments:
 + Meta data (single)
 
 ```go
-// @Model       LoginParam
-// @Description body of login param
+// @Model
+// @Description
 ```
 
 + Property (mutiple)
+    + `allowEmptyValue: *` means not set `allowEmptyValue` value
 
 ```go
 // @Property username string                 true      false            "username"     ExampleUsername
 // @Property expire   integer                false     true             "login expire" 86400
 // @Property other    object(#LoginParamRef) false     true             "other param"
 // @Property others   array(#LoginParamRef)  false     true             "other param"
-// @Property $name    $type($model)          $required $allowEmptyValue $description   $example
+// @Property $name    $type($model)          $required $allowEmptyValue $description   ($example)
 ```
 
 ### Type Format
@@ -240,7 +242,8 @@ optional arguments:
 // @Property xxx array(#Param)
 
 // @Property xxx string(enum:a,2,3\,4)
-// @Property xxx integer(enum:1,2,3,4)
+// @Property xxx integer(enum:1,2,3,4)(format:integer32)
+// @Property xxx string(format:2000-01-01 00:00:00)
 ```
 
 + ResponseModel

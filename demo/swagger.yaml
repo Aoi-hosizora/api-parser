@@ -258,33 +258,27 @@ definitions:
       username:
         description: username
         type: string
-        allowEmptyValue: false
         example: ExampleUsername
       password:
         description: password
         type: string
-        allowEmptyValue: false
         example: ExamplePassword
       expire:
         description: login expire
         type: integer
-        allowEmptyValue: true
         example: 86400
       other:
         description: other param
         type: object
-        allowEmptyValue: true
         $ref: '#/definitions/LoginParamRef'
       others:
         description: other param
         type: array
-        allowEmptyValue: true
         items:
           $ref: '#/definitions/LoginParamRef'
       enum:
         description: other param
         type: string
-        allowEmptyValue: true
         enum:
         - a
         - '2'
@@ -292,12 +286,16 @@ definitions:
       enum2:
         description: other param
         type: integer
-        allowEmptyValue: true
         enum:
         - 5
         - 6
         - 7
         - 8
+        format: integer32
+      format:
+        description: other param
+        type: string
+        format: '2000-01-01 00:00:00'
   LoginParamRef:
     title: LoginParamRef
     description: ref used
