@@ -424,9 +424,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 sec: []
             })
 
-        # response
-        responses = {}
-
+        # req & resp
         def replace_demo_model(dm_content: str, in_demo_model: {}) -> str:
             """
             replace demoModel through ${} (except \$)
@@ -444,72 +442,88 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 dm_content = dm_content.replace('$,', '$')
             return dm_content
 
-        # Desc
-        resp_desc_arr = []
-        read_tmpl(resp_desc_arr, 'ResponseDesc')
-        resp_desc_arr.extend(split_array(tokens, 'ResponseDesc'))
-        for desc in resp_desc_arr:
-            rcode, *rmsg = split_bs(desc)
-            rmsg = ' '.join(rmsg)
-            rmsg = replace_demo_model(rmsg, demo_model)
-            if rcode in responses and 'description' in responses[rcode]:
-                rmsg = responses[rcode]['description'] + ', ' + rmsg
-            if rcode not in responses:
-                responses[rcode] = {}
-            responses[rcode]['description'] = Literal(rmsg)
+        def parse_req_resp(desc_anno: str, header_anno: str, model_anno: str, ex_anno: str) -> {}:
+            obj = {}
+            # Desc
+            desc_arr = []
+            read_tmpl(desc_arr, desc_anno)
+            desc_arr.extend(split_array(tokens, desc_anno))
+            for desc in desc_arr:
+                rcode, *rmsg = split_bs(desc)
+                rmsg = ' '.join(rmsg)
+                rmsg = replace_demo_model(rmsg, demo_model)
+                if rcode in obj and 'description' in obj[rcode]:
+                    rmsg = obj[rcode]['description'] + ', ' + rmsg
+                if rcode not in obj:
+                    obj[rcode] = {}
+                obj[rcode]['description'] = Literal(rmsg)
 
-        # Header
-        resp_header_arr = []
-        read_tmpl(resp_header_arr, 'ResponseHeader')
-        resp_header_arr.extend(split_array(tokens, 'ResponseHeader'))
-        for hdr in resp_header_arr:
-            rcode, *rheader = split_bs(hdr)
-            rheader = ' '.join(rheader)
-            rheader = replace_demo_model(rheader, demo_model)
-            rheader = json.loads(rheader)
+            # Header
+            header_arr = []
+            read_tmpl(header_arr, header_anno)
+            header_arr.extend(split_array(tokens, header_anno))
+            for hdr in header_arr:
+                rcode, *rheader = split_bs(hdr)
+                rheader = ' '.join(rheader)
+                rheader = replace_demo_model(rheader, demo_model)
+                rheader = json.loads(rheader)
 
-            if rcode not in responses:
-                responses[rcode] = {}
-            if 'headers' not in responses[rcode]:
-                responses[rcode]['headers'] = {}
-            for k, v in rheader.items():
-                responses[rcode]['headers'][k] = {
-                    'type': 'string',
-                    'description': v
+                if rcode not in obj:
+                    obj[rcode] = {}
+                if 'headers' not in obj[rcode]:
+                    obj[rcode]['headers'] = {}
+                for k, v in rheader.items():
+                    obj[rcode]['headers'][k] = {
+                        'type': 'string',
+                        'description': v
+                    }
+
+            # Model
+            model_arr = []
+            read_tmpl(model_arr, model_anno)
+            model_arr.extend(split_array(tokens, model_anno))
+            for rm in model_arr:
+                rcode, *rmodel = split_bs(rm)
+                rmodel = trim(' '.join(rmodel))
+                obj_ptn = re.compile(r'#(.+)')
+                obj_name = obj_ptn.findall(rmodel)
+                if len(rmodel) != 0:
+                    obj_name = trim(obj_name[0])
+                    if rcode not in obj:
+                        obj[rcode] = {}
+                    obj[rcode]['schema'] = {
+                        "$ref": f"#/definitions/{obj_name}"
+                    }
+
+            # Body
+            example_arr = []
+            read_tmpl(example_arr, ex_anno)
+            example_arr.extend(split_array(tokens, ex_anno))
+            for resp in example_arr:
+                rcode, *rjson = split_bs(resp)
+                rjson = trim(' '.join(rjson))
+                rjson = replace_demo_model(rjson, demo_model)
+                rjson = json.loads(rjson)
+                rjson = json.dumps(rjson, indent=2, ensure_ascii=False)
+                if rcode not in obj:
+                    obj[rcode] = {}
+                obj[rcode]['examples'] = {
+                    'application/json': Literal(rjson)
                 }
 
-        # Model
-        resp_model_arr = []
-        read_tmpl(resp_model_arr, 'ResponseModel')
-        resp_model_arr.extend(split_array(tokens, 'ResponseModel'))
-        for rm in resp_model_arr:
-            rcode, *rmodel = split_bs(rm)
-            rmodel = trim(' '.join(rmodel))
-            obj_ptn = re.compile(r'#(.+)')
-            obj_name = obj_ptn.findall(rmodel)
-            if len(rmodel) != 0:
-                obj_name = trim(obj_name[0])
-                if rcode not in responses:
-                    responses[rcode] = {}
-                responses[rcode]['schema'] = {
-                    "$ref": f"#/definitions/{obj_name}"
-                }
+            return obj
 
-        # Body
-        resp_example_arr = []
-        read_tmpl(resp_example_arr, 'ResponseEx')
-        resp_example_arr.extend(split_array(tokens, 'ResponseEx'))
-        for resp in resp_example_arr:
-            rcode, *rjson = split_bs(resp)
-            rjson = trim(' '.join(rjson))
-            rjson = replace_demo_model(rjson, demo_model)
-            rjson = json.loads(rjson)
-            rjson = json.dumps(rjson, indent=2, ensure_ascii=False)
-            if rcode not in responses:
-                responses[rcode] = {}
-            responses[rcode]['examples'] = {
-                'application/json': Literal(rjson)
-            }
+        requests = parse_req_resp('RequestDesc', 'RequestHeader', 'RequestModel', 'RequestEx')
+        responses = parse_req_resp('ResponseDesc', 'ResponseHeader', 'ResponseModel', 'ResponseEx')
+
+        for req in requests:
+            for r in req:  # code
+                if 'headers' not in r or 'Content-Type' not in r['headers'] or trim(r['headers']['Content-Type']) == '':
+                    rheader['Content-Type'] = 'application/json'
+        for resp in responses:
+            for r in resp:  # code
+                if 'headers' not in r or 'Content-Type' not in r['headers'] or trim(r['headers']['Content-Type']) == '':
+                    rheader['Content-Type'] = 'application/json; charset=utf-8'
 
         obj = {
             'operationId': oid,
@@ -520,6 +534,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             'produces': produces,
             'parameters': parameters,
             'security': securities,
+            'requests': requests,
             'responses': responses
         }
         return router, method, obj
