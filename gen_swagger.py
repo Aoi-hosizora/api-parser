@@ -14,20 +14,25 @@ def trim(content: str) -> str:
 
 
 def split_bs(content: str) -> []:
+    """
+    split string through blackspace and tab (except in brackets)
+    """
     bl_ptn = re.compile(r'\((.+?)\)')
     bls = bl_ptn.findall(content)
     for bl in bls:
         content = content.replace(bl, bl.replace(' ', ',,'))
+    # replace blankspace to ,, in brackets first
     ret = list(filter(None, re.split(r'[ \t]', content)))
-    return [cnt.replace(',,', ' ') for cnt in ret]
+    return [trim(cnt.replace(',,', ' ')) for cnt in ret]
 
 
-def split_comma(content: str, t: str) -> []:
+def split_comma(content: str) -> []:
+    """
+    split string through , (except \,)
+    """
+    # replace \, to ,, in first
     ctns = content.replace(',', ',,').replace('\\,,', ',').split(',,')
-    if trim(t) == 'integer':
-        return [int(trim(ctn)) for ctn in ctns]
-    else:
-        return [trim(ctn) for ctn in ctns]
+    return [trim(ctn) for ctn in ctns]
 
 
 def stripper(dict_data, ex_key: []):
@@ -123,7 +128,9 @@ def split_type(content: str) -> {}:
                 op_name = trim(ops[0])
                 op_content = trim(':'.join(ops[1:]))
                 if op_name == 'enum':
-                    obj['enum'] = split_comma(op_content, type_name)
+                    obj['enum'] = split_comma(op_content)
+                    if type_name == 'integer':
+                        obj['enum'] = [int(item) for item in obj['enum']]
                 elif op_name == 'format':
                     obj['format'] = op_content
     return obj
@@ -140,8 +147,9 @@ def parse_content(content) -> []:
     return tokens
 
 
-def split_kv(tokens: []) -> ([], []):
+def split_kv_helper(tokens: []) -> ([], []):
     """
+    helper function: split kv strings to keys and values
     ['x', 'y z', 'a b', 'a c'] -> ['x', 'y', 'a', 'a'], ['', 'z', 'b', 'c']
     """
     ks, vs = [], []
@@ -155,9 +163,10 @@ def split_kv(tokens: []) -> ([], []):
 
 def split_dict(tokens: []) -> {}:
     """
+    parse kv strings to dict
     ['x', 'y z', 'a b', 'a c'] -> {'x': '', 'y': 'z'}
     """
-    ks, vs = split_kv(tokens)
+    ks, vs = split_kv_helper(tokens)
     kv = {}
     for idx in range(len(ks)):
         k, v = ks[idx], vs[idx]
@@ -168,9 +177,10 @@ def split_dict(tokens: []) -> {}:
 
 def split_array(tokens: [], array_field: str) -> []:
     """
+    parse kv strings to specific array 
     ['a b', 'a c'] -> ['b', 'c']
     """
-    ks, vs = split_kv(tokens)
+    ks, vs = split_kv_helper(tokens)
     arr = []
     for idx in range(len(ks)):
         k, v = ks[idx], vs[idx]
@@ -181,7 +191,7 @@ def split_array(tokens: [], array_field: str) -> []:
 
 def field(src: {}, src_field: str, *, required=True) -> str:
     """
-    Get field in object dict
+    check and get field in dict
     """
     if src_field in src:
         return src[src_field]
@@ -191,10 +201,15 @@ def field(src: {}, src_field: str, *, required=True) -> str:
         print(f'Error: don\'t contain required field: {src_field}')
         exit(1)
 
+###
+
 
 def gen_main(file_path: str) -> {}:
     """
     Generate swagger config from main file
+    @Host @BasePath @Title @Description @Version @TermOfService
+    @License.Name @License.Url @Contact.Name @Contact.Url @Contact.Email
+    @DemoModel @Template @Tag @GlobalSecurity
     """
     try:
         content = open(file_path, 'r', encoding='utf-8').read()
@@ -297,37 +312,30 @@ def gen_files(all_file_paths: [], *, demo_model: {}, template: {}) -> ({}, {}):
             exit(1)
             return
 
-        flag = '// @Router'
-        content_sp = file_content.split(flag)
-        if len(content_sp) > 1:
+        flags = ['// @Router', '// @Model']
+        for flag in flags:
+            content_sp = file_content.split(flag)
+            if len(content_sp) <= 1:
+                continue
             for content in content_sp:
                 en = file_content.index(content)
                 st = en - len(flag)
-                if st < 0:
+                if st < 0:  # first split block in file
                     continue
                 if file_content[st:en] != flag:
                     continue
                 content = '\n' + flag + content
-                router, method, obj = gen_ctrl(content, demo_model=demo_model, template=template)
-                if obj is not None:
-                    if router not in paths:
-                        paths[router] = {}
-                    paths[router][method] = obj
-
-        flag = '// @Model'
-        content_sp = file_content.split(flag)
-        if len(content_sp) > 1:
-            for content in content_sp:
-                en = file_content.index(content)
-                st = en - len(flag)
-                if st < 0:
-                    continue
-                if file_content[st:en] != flag:
-                    continue
-                content = '\n' + flag + content
-                model_name, model_po = gen_model(content)
-                if model_po is not None:
-                    defs[model_name] = model_po
+                # ctrl & model
+                if flag == '// @Router':
+                    router, method, router_po = gen_ctrl(content, demo_model=demo_model, template=template)
+                    if router_po is not None:
+                        if router not in paths:
+                            paths[router] = {}
+                        paths[router][method] = router_po
+                elif flag == '// @Model':
+                    model_name, model_po = gen_model(content)
+                    if model_po is not None:
+                        defs[model_name] = model_po
 
     return paths, defs
 
@@ -335,9 +343,11 @@ def gen_files(all_file_paths: [], *, demo_model: {}, template: {}) -> ({}, {}):
 def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
     """
     Generate api doc from a route
+    @Router @Tag @Accept @Produce @Param 
+    @ResponseDesc @ResponseHeader @ResponseModel @ResponseEx
+    @Template @Security
     :return: route, method, obj
     """
-
     try:
         tokens = parse_content(content)
         kv = split_dict(tokens)
@@ -372,7 +382,6 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         param_arr = []
         read_tmpl(param_arr, 'Param')
         param_arr.extend(split_array(tokens, 'Param'))
-
         for param in param_arr:
             pname, pin, ptype, preq, pempty, *pother = split_bs(param)
             pname, pin, ptype = trim(pname), trim(pin), trim(ptype)
@@ -394,10 +403,11 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
             }
             if pempty == '*':
                 del obj['allowEmptyValue']
-
-            if pdefault != '':
-                if ptype == 'integer':
+            if pdefault != '': 
+                if ptype == 'integer' or ptype == 'number':
                     obj['default'] = int(obj['default'])
+                elif ptype == 'float' or ptype == 'double':
+                    obj['default'] = float(obj['default'])
 
             # enum -> string(enum:a,b,c)
             # object -> #Result
@@ -418,7 +428,11 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
         responses = {}
 
         def replace_demo_model(dm_content: str, in_demo_model: {}) -> str:
+            """
+            replace demoModel through ${} (except \$)
+            """
             if in_demo_model is not None:
+                dm_content = dm_content.replace('\\$', '$,')
                 for dm in re.compile(r'\${(.+?)}').findall(dm_content):
                     if dm not in in_demo_model:
                         continue
@@ -427,6 +441,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                         dm_content = dm_content.replace('${%s}' % dm, new_dm)
                     except:
                         pass
+                dm_content = dm_content.replace('$,', '$')
             return dm_content
 
         # Desc
@@ -464,40 +479,37 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                 }
 
         # Model
-        try:
-            resp_model_arr = []
-            read_tmpl(resp_model_arr, 'ResponseModel')
-            resp_model_arr.extend(split_array(tokens, 'ResponseModel'))
-            for rm in resp_model_arr:
-                rcode, *rmodel = split_bs(rm)
-                rmodel = trim(' '.join(rmodel))
-                obj_ptn = re.compile(r'#(.+)')
-                obj_name = obj_ptn.findall(rmodel)
-                if len(rmodel) != 0:
-                    obj_name = trim(obj_name[0])
-                    if rcode not in responses:
-                        responses[rcode] = {}
-                    responses[rcode]['schema'] = {
-                        "$ref": f"#/definitions/{obj_name}"
-                    }
-
-            # Body
-            resp_example_arr = []
-            read_tmpl(resp_example_arr, 'Response')
-            resp_example_arr.extend(split_array(tokens, 'Response'))
-            for resp in resp_example_arr:
-                rcode, *rjson = split_bs(resp)
-                rjson = trim(' '.join(rjson))
-                rjson = replace_demo_model(rjson, demo_model)
-                rjson = json.loads(rjson)
-                rjson = json.dumps(rjson, indent=2, ensure_ascii=False)
+        resp_model_arr = []
+        read_tmpl(resp_model_arr, 'ResponseModel')
+        resp_model_arr.extend(split_array(tokens, 'ResponseModel'))
+        for rm in resp_model_arr:
+            rcode, *rmodel = split_bs(rm)
+            rmodel = trim(' '.join(rmodel))
+            obj_ptn = re.compile(r'#(.+)')
+            obj_name = obj_ptn.findall(rmodel)
+            if len(rmodel) != 0:
+                obj_name = trim(obj_name[0])
                 if rcode not in responses:
                     responses[rcode] = {}
-                responses[rcode]['examples'] = {
-                    'application/json': Literal(rjson)
+                responses[rcode]['schema'] = {
+                    "$ref": f"#/definitions/{obj_name}"
                 }
-        except:
-            traceback.print_exc()
+
+        # Body
+        resp_example_arr = []
+        read_tmpl(resp_example_arr, 'ResponseEx')
+        resp_example_arr.extend(split_array(tokens, 'ResponseEx'))
+        for resp in resp_example_arr:
+            rcode, *rjson = split_bs(resp)
+            rjson = trim(' '.join(rjson))
+            rjson = replace_demo_model(rjson, demo_model)
+            rjson = json.loads(rjson)
+            rjson = json.dumps(rjson, indent=2, ensure_ascii=False)
+            if rcode not in responses:
+                responses[rcode] = {}
+            responses[rcode]['examples'] = {
+                'application/json': Literal(rjson)
+            }
 
         obj = {
             'operationId': oid,
@@ -519,18 +531,17 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
 def gen_model(content: str) -> (str, {}):
     """
     Generate definition doc from a model
+    @Model @Description @Property
     :return: name, obj
     """
     try:
         tokens = parse_content(content)
         kv = split_dict(tokens)
 
-        # @Model LoginParam "parameter of login"
-        # @Property username string true true "name of user" example
-
         # meta
         title = field(kv, 'Model')
 
+        # @Property username string true true "name of user" example
         # prop
         prop_po = {}
         requires = []
@@ -539,6 +550,7 @@ def gen_model(content: str) -> (str, {}):
             pname, ptype, preq, pempty, *pother = split_bs(prop)
             pname, ptype = trim(pname), trim(ptype)
             preq, pempty = trim(preq.lower()), trim(pempty.lower())
+
             pother = trim(' '.join(pother))
             pother_sp = re.compile(r'"(.*)"(.*)').findall(pother)
             pdesc = trim(pother_sp[0][0])
@@ -554,10 +566,11 @@ def gen_model(content: str) -> (str, {}):
             }
             if pempty == '*':
                 del obj['allowEmptyValue']
-
             if pexample != '':
-                if ptype == 'integer':
+                if ptype == 'integer' or ptype == 'number':
                     obj['example'] = int(obj['example'])
+                elif ptype == 'float' or ptype == 'double':
+                    obj['example'] = float(obj['example'])
 
             # enum -> string(enum:a,b,c)
             # nest -> object(#Result)
@@ -577,6 +590,8 @@ def gen_model(content: str) -> (str, {}):
     except:
         # traceback.print_exc()
         return '', None
+
+###
 
 
 def parse():

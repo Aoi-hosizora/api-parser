@@ -10,8 +10,8 @@ package main
 // @Accept              multipart/form-data
 // @ResponseDesc 400    "request param error"
 // @ResponseDesc 404    "user not found"
-// @Response 200        ${resp_user}
-/* @Response 400        {
+// @ResponseEx 200      ${resp_user}
+/* @ResponseEx 400      {
 							"code": 400,
 							"message": "request param error"
  						} */
@@ -31,7 +31,7 @@ package main
 // @ResponseDesc 400    "request format error"
 // @ResponseDesc 404    "user not found"
 // @ResponseDesc 500    "subscribe failed"
-/* @Response 200        {
+/* @ResponseEx 200      {
 							"code": 200,
 							"message": "success",
 							"data": ${array}
@@ -51,14 +51,14 @@ func func1() {
 // @ResponseDesc 404    "user not found"
 // @ResponseDesc 500    "unsubscribe failed"
 // @ResponseHeader 200  { "Content-Type": "application/json; charset=utf-8" }
-/* @ResponseModel 200 	#Result */
+/* @ResponseModel 200   #Result */
 // @ResponseHeader 400  { "Content-Type": "application/json; charset=utf-8" }
-/* @Response 400 		{
+/* @ResponseEx 400      {
 							"code": 400,
 							"message": "request param error"
  						} */
 /* @ResponseModel 400 	#Result */
-/* @Response 500        {
+/* @ResponseEx 500      {
 							"code": 500,
 							"message": "unsubscribe failed"
  						} */
@@ -67,12 +67,12 @@ func func2() {
 
 }
 
-// @Router         /v1/auth/login [POST]
-// @Summary        Login
-// @Tag            Authorization
-// @Param          param body #LoginParam true false "login param"
-// @ResponseDesc   200 "OK"
-/* @Response 200   ${resp_user} */
+// @Router           /v1/auth/login [POST]
+// @Summary          Login
+// @Tag              Authorization
+// @Param            param body #LoginParam true false "login param"
+// @ResponseDesc     200 "OK"
+/* @ResponseEx 200   ${resp_user} */
 func func3() {
 
 }
