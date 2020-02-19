@@ -12,13 +12,13 @@ package main
 // @Contact.Url                 xxx
 // @Contact.Email               xxx
 
-// @Tag                         "User" "User-Controller"
-// @Tag                         "Subscribe" "Sub-Controller"
+// @Tag                         User "User-Controller"
+// @Tag                         Subscribe "Sub-Controller"
 // @DemoModel                   ./demo/demo.json
-// @Template Auth.Param         Authorization header string true "User login token"
-// @Template Auth.ErrorCode     401 authorization failed
-// @Template Auth.ErrorCode     401 token has expired
-// @Template Other.Param    	other header integer false "other header"
+// @Template Auth.ResponseDesc  401 authorization failed
+// @Template Auth.ResponseDesc  401 token has expired
+// @Template Auth.Param         Authorization header string true true "Login Token"
+// @Template Other.Param    	other header integer false false "other header"
 func main() {
 
 }

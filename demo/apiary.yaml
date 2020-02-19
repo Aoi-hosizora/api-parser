@@ -18,11 +18,6 @@ info:
     name: xxx
     url: xxx
     email: xxx
-securityDefinitions:
-  Jwt:
-    type: apiKey
-    name: Authorization
-    in: header
 paths:
   /v1/user/{uid}/subscriber:
     get:
@@ -52,6 +47,21 @@ paths:
         description: page
         default: 1
       security: []
+      requests:
+        '200':
+          headers:
+            a:
+              type: string
+              description: b
+            Content-Type:
+              type: string
+              description: application/json
+          examples:
+            application/json: |-
+              {
+                "c": "d",
+                "e": "f"
+              }
       responses:
         '400':
           description: |-
@@ -63,12 +73,16 @@ paths:
                 "message": "request param error"
               }
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '404':
           description: |-
             "user not found"
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '200':
           examples:
             application/json: |-
@@ -88,7 +102,9 @@ paths:
                 }
               }
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
   /v1/user/subscribing:
     put:
       operationId: v1-user-subscribing-put
@@ -102,6 +118,12 @@ paths:
       produces:
       - application/json
       parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        allowEmptyValue: true
+        description: Login Token
       - name: other
         in: header
         type: integer
@@ -124,29 +146,51 @@ paths:
         - 1
         - 2
         - 3
-      security:
-      - Jwt: []
+      security: []
+      requests:
+        '200':
+          headers:
+            a:
+              type: string
+              description: b
+            Content-Type:
+              type: string
+              description: application/json
+          examples:
+            application/json: |-
+              {
+                "c": "d",
+                "e": "f"
+              }
       responses:
         '401':
           description: |-
             authorization failed, token has expired
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '400':
           description: |-
             "request param error", "request format error"
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '404':
           description: |-
             "user not found"
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '500':
           description: |-
             "subscribe failed"
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '200':
           examples:
             application/json: |-
@@ -163,7 +207,9 @@ paths:
                 ]
               }
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
     delete:
       operationId: v1-user-subscribing-delete
       summary: Unsubscribe user
@@ -174,20 +220,27 @@ paths:
       produces:
       - application/json
       parameters:
+      - name: Authorization
+        in: header
+        type: string
+        required: true
+        allowEmptyValue: true
+        description: Login Token
       - name: to
         in: formData
         type: integer
         required: true
         allowEmptyValue: false
         description: user id
-      security:
-      - Jwt: []
+      security: []
       responses:
         '401':
           description: |-
             authorization failed, token has expired
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '400':
           description: |-
             "request param error", "request format error"
@@ -207,7 +260,9 @@ paths:
           description: |-
             "user not found"
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '500':
           description: |-
             "unsubscribe failed"
@@ -220,7 +275,9 @@ paths:
                 "message": "unsubscribe failed"
               }
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
         '200':
           headers:
             Content-Type:
@@ -269,7 +326,9 @@ paths:
                 }
               }
           headers:
-            Content-Type: application/json; charset=utf-8
+            Content-Type:
+              type: string
+              description: application/json
 definitions:
   LoginParam:
     title: LoginParam
