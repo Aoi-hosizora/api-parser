@@ -100,13 +100,12 @@ def get_group_obj(obj: {}) -> {}:
     groups = {}
     for route, route_obj in obj['paths'].items():
         for method, method_obj in route_obj.items():
-            this_groups = ['Default'] if len(method_obj['tags']) == 0 else method_obj['tags']
-            for group in this_groups:
-                if group not in groups:
-                    groups[group] = {}
-                if route not in groups[group]:
-                    groups[group][route] = {}
-                groups[group][route][method] = method_obj
+            tab = 'Default' if len(method_obj['tags']) == 0 else method_obj['tags'][0]
+            if tab not in groups:
+                groups[tab] = {}
+            if route not in groups[tab]:
+                groups[tab][route] = {}
+            groups[tab][route][method] = method_obj
     return groups
 
 
@@ -116,8 +115,8 @@ def tmpl_ctrl(groups_obj: {}) -> str:
         tmpl = METHOD_INFO_TEMPLATE.format(
             method=method.upper(),
             summary=obj['summary'],
-            description=obj['description'] if 'description' in obj else ''
-        ).strip('')
+            description=f'({obj["description"]})' if 'description' in obj else ''
+        ).strip(' ')
 
         req = ''
         resp = ''
@@ -129,7 +128,7 @@ def tmpl_ctrl(groups_obj: {}) -> str:
             if 'type' in param:
                 p_type = param['type']
             elif 'schema' in param:
-                p_type = param['schema']['$ref'].strip('#/definitions/')
+                p_type = param['schema']['$ref']
             else:
                 p_type = 'unknown'
             p_req = 'required' if param['required'] else 'not required'
@@ -138,28 +137,34 @@ def tmpl_ctrl(groups_obj: {}) -> str:
                 p_empty = ' (allow empty)' if param['allowEmptyValue'] else ' (not empty)'
             else:
                 p_empty = ''
-            req_param = f'{p_in}: `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
+            req_param = f'+ {p_in}: `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
             req_param = indent_string(req_param, 4)
-            req = cat_newline(req, f'+ {req_param}', 1)
+            req = cat_newline(req, f'{req_param}', 1)
 
         # Resp 200
-        for code, resp_obj in obj['responses'].items():
+        codes = [int(c) for c in obj['responses'].keys()]
+        codes = [str(c) for c in sorted(codes)]
+        for code in codes:
+            resp_obj = obj['responses'][code]
             # Resp Desc
             if 'description' in resp_obj:
-                resp = cat_newline(resp, f'+ Response {code}', 1)
-                resp_desc = indent_string(resp_obj['description'], 4)
+                resp = cat_newline(resp, f'+ Response {code} Description', 1)
+                resp_desc = '+ ' + resp_obj['description']
+                resp_desc = indent_string(resp_desc, 4)
                 resp = cat_newline(resp, resp_desc, 1)
             # Resp Header
             if 'headers' in resp_obj:
-                resp = cat_newline(resp, f'+ Response {code} Header', 1)
-                for header, header_obj in resp_obj['headers'].items():
-                    resp_header = f'`{header}` ({header_obj["type"]})'
-                    resp_header = indent_string(resp_header, 4)
-                    resp = cat_newline(resp, resp_header, 1)
+                headers_obj = {k: v for k, v in resp_obj['headers'].items() if k != 'Content-Type'}
+                if len(headers_obj) > 0:
+                    resp = cat_newline(resp, f'+ Response {code} Header', 1)
+                    for header, header_obj in headers_obj.items():
+                        resp_header = f'+ `{header}` ({header_obj["type"]})'
+                        resp_header = indent_string(resp_header, 4)
+                        resp = cat_newline(resp, resp_header, 1)
             # Resp Body
             if 'schema' in resp_obj:
                 resp = cat_newline(resp, f'+ Response {code} Body', 1)
-                resp_model = resp_obj['schema']['$ref'].strip('#/definitions/')
+                resp_model = resp_obj['schema']['$ref']
                 resp_model = indent_string(f'See {resp_model}', 4)
                 resp = cat_newline(resp, resp_model, 1)
         tmpl = cat_newline(tmpl, req, 1)
@@ -175,7 +180,9 @@ def tmpl_ctrl(groups_obj: {}) -> str:
         )
         req_codes = list(obj['requests'].keys()) if 'requests' in obj else []
         resp_codes = list(obj['responses'].keys()) if 'responses' in obj else []
-        for code in list(set(req_codes + resp_codes)):
+        codes = [int(c) for c in req_codes + resp_codes]
+        codes = [str(c) for c in sorted(set(codes))]
+        for code in codes:
             req = ''
             resp = ''
             # Request 200
@@ -193,12 +200,13 @@ def tmpl_ctrl(groups_obj: {}) -> str:
                 if 'examples' in req_obj:
                     req = cat_newline(req, indent_string('+ Body', 4), 1)
                     req_body = req_obj['examples']['application/json']
+                    req_body = json.dumps(json.loads(req_body), indent=4)
                     req_body = indent_string(req_body, 12)
                     req = cat_newline(req, req_body, 1)
 
             # Response 200
             if 'responses' in obj and code in obj['responses']:
-                resp = cat_newline(req, f'+ Response {code}', 1)
+                resp = cat_newline(resp, f'+ Response {code}', 1)
                 resp_obj = obj['responses'][code]
                 # Header
                 if 'headers' in resp_obj:
@@ -211,6 +219,7 @@ def tmpl_ctrl(groups_obj: {}) -> str:
                 if 'examples' in resp_obj:
                     resp = cat_newline(resp, indent_string('+ Body', 4), 1)
                     resp_body = resp_obj['examples']['application/json']
+                    resp_body = json.dumps(json.loads(resp_body), indent=4)
                     resp_body = indent_string(resp_body, 12)
                     resp = cat_newline(resp, resp_body, 1)
             tmpl = cat_newline(tmpl, req, 1)
@@ -283,6 +292,16 @@ def main():
     apib = tmpl_main(spec)
     groups_obj = get_group_obj(spec)
     apib = cat_newline(apib, tmpl_ctrl(groups_obj), 1)
+
+    apib_len = len(apib)
+    while True:
+        apib = apib.replace('\n\n\n', '\n\n')
+        if apib_len != len(apib):
+            apib_len = len(apib)
+        else:
+            break
+    apib += '\n'
+
     try:
         print(f'> Saving {args.output}...')
         with open(args.output, 'w') as f:

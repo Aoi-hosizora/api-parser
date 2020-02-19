@@ -17,33 +17,21 @@ This is a demo api
 
 ## User's subscribers [/v1/user/{uid}/subscriber]
 
-GET - User's subscribers Query user's subscribers, return page data
+GET - User's subscribers (Query user's subscribers, return page data)
 
 + Request Parameter
 
-+     path: `uid` (integer) required - user id (not empty) (default: 1)
+    + path: `uid` (integer) required - user id (not empty) (default: 1)
 
-+     query: `page` (integer) not required - page (allow empty) (default: 1)
+    + query: `page` (integer) not required - page (allow empty) (default: 1)
 
-+ Response 400
++ Response 400 Description
 
-    "request param error"
+    + "request param error"
 
-+ Response 400 Header
++ Response 404 Description
 
-    `Content-Type` (string)
-
-+ Response 404
-
-    "user not found"
-
-+ Response 404 Header
-
-    `Content-Type` (string)
-
-+ Response 200 Header
-
-    `Content-Type` (string)
+    + "user not found"
 
 ### User's subscribers [GET]
 
@@ -58,23 +46,8 @@ GET - User's subscribers Query user's subscribers, return page data
     + Body
 
             {
-              "c": "d",
-              "e": "f"
-            }
-
-+ Request 200
-
-    + Headers
-
-            a: b
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "c": "d",
-              "e": "f"
+                "c": "d",
+                "e": "f"
             }
 
 + Response 200
@@ -86,19 +59,19 @@ GET - User's subscribers Query user's subscribers, return page data
     + Body
 
             {
-              "code": 200,
-              "message": "success",
-              "data": {
-                "count": 1,
-                "page": 1,
-                "data": [
-                  {
-                    "uid": 1,
-                    "username": "TestUserName",
-                    "profile": "TestProfile"
-                  }
-                ]
-              }
+                "code": 200,
+                "message": "success",
+                "data": {
+                    "count": 1,
+                    "page": 1,
+                    "data": [
+                        {
+                            "uid": 1,
+                            "username": "TestUserName",
+                            "profile": "TestProfile"
+                        }
+                    ]
+                }
             }
 
 + Response 400
@@ -110,8 +83,8 @@ GET - User's subscribers Query user's subscribers, return page data
     + Body
 
             {
-              "code": 400,
-              "message": "request param error"
+                "code": 400,
+                "message": "request param error"
             }
 
 + Response 404
@@ -122,124 +95,72 @@ GET - User's subscribers Query user's subscribers, return page data
 
 ## Subscribe user & Unsubscribe user [/v1/user/subscribing]
 
-PUT - Subscribe user Subscribe someone
+PUT - Subscribe user (Subscribe someone)
 
 + Request Parameter
 
-+     header: `Authorization` (string) required - Login Token (allow empty)
+    + header: `Authorization` (string) required - Login Token (allow empty)
 
-+     header: `other` (integer) not required - other header (not empty)
+    + header: `other` (integer) not required - other header (not empty)
 
-+     formData: `to` (integer) required - user id (not empty)
+    + formData: `to` (integer) required - user id (not empty)
 
-+     formData: `to2` (integer) required - user id (not empty)
+    + formData: `to2` (integer) required - user id (not empty)
 
-+ Response 401
++ Response 400 Description
 
-    authorization failed, token has expired
+    + "request param error", "request format error"
 
-+ Response 401 Header
++ Response 401 Description
 
-    `Content-Type` (string)
+    + authorization failed, token has expired
 
-+ Response 400
++ Response 404 Description
 
-    "request param error", "request format error"
+    + "user not found"
 
-+ Response 400 Header
++ Response 500 Description
 
-    `Content-Type` (string)
+    + "subscribe failed"
 
-+ Response 404
-
-    "user not found"
-
-+ Response 404 Header
-
-    `Content-Type` (string)
-
-+ Response 500
-
-    "subscribe failed"
-
-+ Response 500 Header
-
-    `Content-Type` (string)
-
-+ Response 200 Header
-
-    `Content-Type` (string)
-
-DELETE - Unsubscribe user 
+DELETE - Unsubscribe user
 
 + Request Parameter
 
-+     header: `Authorization` (string) required - Login Token (allow empty)
+    + header: `Authorization` (string) required - Login Token (allow empty)
 
-+     formData: `to` (integer) required - user id (not empty)
-
-+ Response 401
-
-    authorization failed, token has expired
-
-+ Response 401 Header
-
-    `Content-Type` (string)
-
-+ Response 400
-
-    "request param error", "request format error"
-
-+ Response 400 Header
-
-    `Content-Type` (string)
-
-+ Response 400 Body
-
-    See Resul
-
-+ Response 404
-
-    "user not found"
-
-+ Response 404 Header
-
-    `Content-Type` (string)
-
-+ Response 500
-
-    "unsubscribe failed"
-
-+ Response 500 Header
-
-    `Content-Type` (string)
-
-+ Response 500 Body
-
-    See Resul
-
-+ Response 200 Header
-
-    `Content-Type` (string)
+    + formData: `to` (integer) required - user id (not empty)
 
 + Response 200 Body
 
-    See Resul
+    See #/definitions/Result
+
++ Response 400 Description
+
+    + "request param error", "request format error"
+
++ Response 400 Body
+
+    See #/definitions/Result
+
++ Response 401 Description
+
+    + authorization failed, token has expired
+
++ Response 404 Description
+
+    + "user not found"
+
++ Response 500 Description
+
+    + "unsubscribe failed"
+
++ Response 500 Body
+
+    See #/definitions/Result
 
 ### Subscribe user [PUT]
 
-+ Response 500
-
-    + Headers
-
-            Content-Type: application/json
-
-+ Response 400
-
-    + Headers
-
-            Content-Type: application/json
-
 + Request 200
 
     + Headers
@@ -251,23 +172,8 @@ DELETE - Unsubscribe user
     + Body
 
             {
-              "c": "d",
-              "e": "f"
-            }
-
-+ Request 200
-
-    + Headers
-
-            a: b
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "c": "d",
-              "e": "f"
+                "c": "d",
+                "e": "f"
             }
 
 + Response 200
@@ -279,17 +185,23 @@ DELETE - Unsubscribe user
     + Body
 
             {
-              "code": 200,
-              "message": "success",
-              "data": [
-                {
-                  "content": "123"
-                },
-                {
-                  "content": "456"
-                }
-              ]
+                "code": 200,
+                "message": "success",
+                "data": [
+                    {
+                        "content": "123"
+                    },
+                    {
+                        "content": "456"
+                    }
+                ]
             }
+
++ Response 400
+
+    + Headers
+
+            Content-Type: application/json
 
 + Response 401
 
@@ -298,6 +210,12 @@ DELETE - Unsubscribe user
             Content-Type: application/json
 
 + Response 404
+
+    + Headers
+
+            Content-Type: application/json
+
++ Response 500
 
     + Headers
 
@@ -305,18 +223,11 @@ DELETE - Unsubscribe user
 
 ### Unsubscribe user [DELETE]
 
-+ Response 500
++ Response 200
 
     + Headers
 
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "code": 500,
-              "message": "unsubscribe failed"
-            }
+            Content-Type: application/json; charset=utf-8
 
 + Response 400
 
@@ -327,15 +238,9 @@ DELETE - Unsubscribe user
     + Body
 
             {
-              "code": 400,
-              "message": "request param error"
+                "code": 400,
+                "message": "request param error"
             }
-
-+ Response 200
-
-    + Headers
-
-            Content-Type: application/json; charset=utf-8
 
 + Response 401
 
@@ -348,165 +253,6 @@ DELETE - Unsubscribe user
     + Headers
 
             Content-Type: application/json
-
-# Group Subscribe
-
-## User's subscribers [/v1/user/{uid}/subscriber]
-
-GET - User's subscribers Query user's subscribers, return page data
-
-+ Request Parameter
-
-+     path: `uid` (integer) required - user id (not empty) (default: 1)
-
-+     query: `page` (integer) not required - page (allow empty) (default: 1)
-
-+ Response 400
-
-    "request param error"
-
-+ Response 400 Header
-
-    `Content-Type` (string)
-
-+ Response 404
-
-    "user not found"
-
-+ Response 404 Header
-
-    `Content-Type` (string)
-
-+ Response 200 Header
-
-    `Content-Type` (string)
-
-### User's subscribers [GET]
-
-+ Request 200
-
-    + Headers
-
-            a: b
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "c": "d",
-              "e": "f"
-            }
-
-+ Request 200
-
-    + Headers
-
-            a: b
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "c": "d",
-              "e": "f"
-            }
-
-+ Response 200
-
-    + Headers
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "code": 200,
-              "message": "success",
-              "data": {
-                "count": 1,
-                "page": 1,
-                "data": [
-                  {
-                    "uid": 1,
-                    "username": "TestUserName",
-                    "profile": "TestProfile"
-                  }
-                ]
-              }
-            }
-
-+ Response 400
-
-    + Headers
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "code": 400,
-              "message": "request param error"
-            }
-
-+ Response 404
-
-    + Headers
-
-            Content-Type: application/json
-
-## Subscribe user [/v1/user/subscribing]
-
-PUT - Subscribe user Subscribe someone
-
-+ Request Parameter
-
-+     header: `Authorization` (string) required - Login Token (allow empty)
-
-+     header: `other` (integer) not required - other header (not empty)
-
-+     formData: `to` (integer) required - user id (not empty)
-
-+     formData: `to2` (integer) required - user id (not empty)
-
-+ Response 401
-
-    authorization failed, token has expired
-
-+ Response 401 Header
-
-    `Content-Type` (string)
-
-+ Response 400
-
-    "request param error", "request format error"
-
-+ Response 400 Header
-
-    `Content-Type` (string)
-
-+ Response 404
-
-    "user not found"
-
-+ Response 404 Header
-
-    `Content-Type` (string)
-
-+ Response 500
-
-    "subscribe failed"
-
-+ Response 500 Header
-
-    `Content-Type` (string)
-
-+ Response 200 Header
-
-    `Content-Type` (string)
-
-### Subscribe user [PUT]
 
 + Response 500
 
@@ -514,94 +260,26 @@ PUT - Subscribe user Subscribe someone
 
             Content-Type: application/json
 
-+ Response 400
-
-    + Headers
-
-            Content-Type: application/json
-
-+ Request 200
-
-    + Headers
-
-            a: b
-
-            Content-Type: application/json
-
     + Body
 
             {
-              "c": "d",
-              "e": "f"
+                "code": 500,
+                "message": "unsubscribe failed"
             }
-
-+ Request 200
-
-    + Headers
-
-            a: b
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "c": "d",
-              "e": "f"
-            }
-
-+ Response 200
-
-    + Headers
-
-            Content-Type: application/json
-
-    + Body
-
-            {
-              "code": 200,
-              "message": "success",
-              "data": [
-                {
-                  "content": "123"
-                },
-                {
-                  "content": "456"
-                }
-              ]
-            }
-
-+ Response 401
-
-    + Headers
-
-            Content-Type: application/json
-
-+ Response 404
-
-    + Headers
-
-            Content-Type: application/json
 
 # Group Authorization
 
-
-
 ## Login [/v1/auth/login]
 
-POST - Login 
+POST - Login
 
 + Request Parameter
 
-+     body: `param` (LoginParam) required - login param (not empty)
+    + body: `param` (#/definitions/LoginParam) required - login param (not empty)
 
-+ Response 200
++ Response 200 Description
 
-    "OK"
-
-+ Response 200 Header
-
-    `Content-Type` (string)
+    + "OK"
 
 ### Login [POST]
 
@@ -614,17 +292,17 @@ POST - Login
     + Body
 
             {
-              "code": 200,
-              "message": "success",
-              "data": {
-                "count": 1,
-                "page": 1,
-                "data": [
-                  {
-                    "uid": 1,
-                    "username": "TestUserName",
-                    "profile": "TestProfile"
-                  }
-                ]
-              }
+                "code": 200,
+                "message": "success",
+                "data": {
+                    "count": 1,
+                    "page": 1,
+                    "data": [
+                        {
+                            "uid": 1,
+                            "username": "TestUserName",
+                            "profile": "TestProfile"
+                        }
+                    ]
+                }
             }
