@@ -123,12 +123,12 @@ def tmpl_ctrl(groups_obj: {}) -> str:
         # Req Param
         if 'parameters' in obj:
             req = cat_newline(req, f'+ Request Parameter', 1)
-        for param in obj['parameters']:
+        for idx, param in enumerate(obj['parameters']):
             p_name, p_in, p_desc = param['name'], param['in'], param['description']
             if 'type' in param:
                 p_type = param['type']
             elif 'schema' in param:
-                p_type = param['schema']['$ref']
+                p_type = param['schema']['$ref'].split('/')[-1]
             else:
                 p_type = 'unknown'
             p_req = 'required' if param['required'] else 'not required'
@@ -139,7 +139,7 @@ def tmpl_ctrl(groups_obj: {}) -> str:
                 p_empty = ''
             req_param = f'+ {p_in}: `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
             req_param = indent_string(req_param, 4)
-            req = cat_newline(req, f'{req_param}', 1)
+            req = cat_newline(req, f'{req_param}', 1 if idx == 0 else 0)
 
         # Resp 200
         codes = [int(c) for c in obj['responses'].keys()]
@@ -148,7 +148,7 @@ def tmpl_ctrl(groups_obj: {}) -> str:
             resp_obj = obj['responses'][code]
             # Resp Desc
             if 'description' in resp_obj:
-                resp = cat_newline(resp, f'+ Response {code} Description', 1)
+                resp = cat_newline(resp, f'+ Response {code}', 1)
                 resp_desc = '+ ' + resp_obj['description']
                 resp_desc = indent_string(resp_desc, 4)
                 resp = cat_newline(resp, resp_desc, 1)
@@ -164,7 +164,7 @@ def tmpl_ctrl(groups_obj: {}) -> str:
             # Resp Body
             if 'schema' in resp_obj:
                 resp = cat_newline(resp, f'+ Response {code} Body', 1)
-                resp_model = resp_obj['schema']['$ref']
+                resp_model = resp_obj['schema']['$ref'].split('/')[-1]
                 resp_model = indent_string(f'See {resp_model}', 4)
                 resp = cat_newline(resp, resp_model, 1)
         tmpl = cat_newline(tmpl, req, 1)
@@ -192,10 +192,10 @@ def tmpl_ctrl(groups_obj: {}) -> str:
                 # Header
                 if 'headers' in req_obj:
                     req = cat_newline(req, indent_string('+ Headers', 4), 1)
-                    for header, header_obj in req_obj['headers'].items():
+                    for idx, (header, header_obj) in enumerate(req_obj['headers'].items()):
                         req_header = f'{header}: {header_obj["description"]}'
                         req_header = indent_string(req_header, 12)
-                        req = cat_newline(req, req_header, 1)
+                        req = cat_newline(req, req_header, 1 if idx == 0 else 0)
                 # Body
                 if 'examples' in req_obj:
                     req = cat_newline(req, indent_string('+ Body', 4), 1)

@@ -515,7 +515,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
 
         requests = parse_req_resp('RequestDesc', 'RequestHeader', 'RequestModel', 'RequestEx')
         responses = parse_req_resp('ResponseDesc', 'ResponseHeader', 'ResponseModel', 'ResponseEx')
-        for req_resp in [requests, responses]:
+        for idx, req_resp in enumerate([requests, responses]):
             for r in req_resp.values():
                 if 'headers' not in r:
                     r['headers'] = {}
@@ -523,7 +523,10 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}) -> (str, str, {}):
                     r['headers']['Content-Type'] = {'type': 'string', 'description': ''}
                 ct = r['headers']['Content-Type']
                 if ct['description'] == '':
-                    ct['description'] = 'application/json'
+                    if idx == 0:
+                        ct['description'] = 'application/json'
+                    else:
+                        ct['description'] = 'application/json; charset=utf-8'
 
         obj = {
             'operationId': oid,

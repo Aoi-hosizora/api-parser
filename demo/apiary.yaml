@@ -75,15 +75,22 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '404':
           description: |-
             "user not found"
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '200':
+          headers:
+            a:
+              type: string
+              description: b
+            Content-Type:
+              type: string
+              description: application/json; charset=utf-8
           examples:
             application/json: |-
               {
@@ -101,10 +108,6 @@ paths:
                   ]
                 }
               }
-          headers:
-            Content-Type:
-              type: string
-              description: application/json
   /v1/user/subscribing:
     put:
       operationId: v1-user-subscribing-put
@@ -169,28 +172,28 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '400':
           description: |-
             "request param error", "request format error"
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '404':
           description: |-
             "user not found"
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '500':
           description: |-
             "subscribe failed"
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '200':
           examples:
             application/json: |-
@@ -209,7 +212,7 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
     delete:
       operationId: v1-user-subscribing-delete
       summary: Unsubscribe user
@@ -240,7 +243,7 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '400':
           description: |-
             "request param error", "request format error"
@@ -262,7 +265,7 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '500':
           description: |-
             "unsubscribe failed"
@@ -277,7 +280,7 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
         '200':
           headers:
             Content-Type:
@@ -328,7 +331,7 @@ paths:
           headers:
             Content-Type:
               type: string
-              description: application/json
+              description: application/json; charset=utf-8
 definitions:
   LoginParam:
     title: LoginParam

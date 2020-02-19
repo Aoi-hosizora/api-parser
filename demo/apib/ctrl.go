@@ -13,6 +13,7 @@ package main
 // @ResponseDesc 400    "request param error"
 // @ResponseDesc 404    "user not found"
 // @ResponseEx 200      ${resp_user}
+// @ResponseHeader 200  {"a": "b"}
 /* @ResponseEx 400      {
 							"code": 400,
 							"message": "request param error"

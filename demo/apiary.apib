@@ -22,14 +22,17 @@ GET - User's subscribers (Query user's subscribers, return page data)
 + Request Parameter
 
     + path: `uid` (integer) required - user id (not empty) (default: 1)
-
     + query: `page` (integer) not required - page (allow empty) (default: 1)
 
-+ Response 400 Description
++ Response 200 Header
+
+    + `a` (string)
+
++ Response 400
 
     + "request param error"
 
-+ Response 404 Description
++ Response 404
 
     + "user not found"
 
@@ -40,7 +43,6 @@ GET - User's subscribers (Query user's subscribers, return page data)
     + Headers
 
             a: b
-
             Content-Type: application/json
 
     + Body
@@ -54,7 +56,9 @@ GET - User's subscribers (Query user's subscribers, return page data)
 
     + Headers
 
-            Content-Type: application/json
+            a: b
+
+            Content-Type: application/json; charset=utf-8
 
     + Body
 
@@ -78,7 +82,7 @@ GET - User's subscribers (Query user's subscribers, return page data)
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
     + Body
 
@@ -91,7 +95,7 @@ GET - User's subscribers (Query user's subscribers, return page data)
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 ## Subscribe user & Unsubscribe user [/v1/user/subscribing]
 
@@ -100,26 +104,23 @@ PUT - Subscribe user (Subscribe someone)
 + Request Parameter
 
     + header: `Authorization` (string) required - Login Token (allow empty)
-
     + header: `other` (integer) not required - other header (not empty)
-
     + formData: `to` (integer) required - user id (not empty)
-
     + formData: `to2` (integer) required - user id (not empty)
 
-+ Response 400 Description
++ Response 400
 
     + "request param error", "request format error"
 
-+ Response 401 Description
++ Response 401
 
     + authorization failed, token has expired
 
-+ Response 404 Description
++ Response 404
 
     + "user not found"
 
-+ Response 500 Description
++ Response 500
 
     + "subscribe failed"
 
@@ -128,36 +129,35 @@ DELETE - Unsubscribe user
 + Request Parameter
 
     + header: `Authorization` (string) required - Login Token (allow empty)
-
     + formData: `to` (integer) required - user id (not empty)
 
 + Response 200 Body
 
-    See #/definitions/Result
+    See Result
 
-+ Response 400 Description
++ Response 400
 
     + "request param error", "request format error"
 
 + Response 400 Body
 
-    See #/definitions/Result
+    See Result
 
-+ Response 401 Description
++ Response 401
 
     + authorization failed, token has expired
 
-+ Response 404 Description
++ Response 404
 
     + "user not found"
 
-+ Response 500 Description
++ Response 500
 
     + "unsubscribe failed"
 
 + Response 500 Body
 
-    See #/definitions/Result
+    See Result
 
 ### Subscribe user [PUT]
 
@@ -166,7 +166,6 @@ DELETE - Unsubscribe user
     + Headers
 
             a: b
-
             Content-Type: application/json
 
     + Body
@@ -180,7 +179,7 @@ DELETE - Unsubscribe user
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
     + Body
 
@@ -201,25 +200,25 @@ DELETE - Unsubscribe user
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 + Response 401
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 + Response 404
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 + Response 500
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 ### Unsubscribe user [DELETE]
 
@@ -246,19 +245,19 @@ DELETE - Unsubscribe user
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 + Response 404
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
 + Response 500
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
     + Body
 
@@ -275,9 +274,9 @@ POST - Login
 
 + Request Parameter
 
-    + body: `param` (#/definitions/LoginParam) required - login param (not empty)
+    + body: `param` (LoginParam) required - login param (not empty)
 
-+ Response 200 Description
++ Response 200
 
     + "OK"
 
@@ -287,7 +286,7 @@ POST - Login
 
     + Headers
 
-            Content-Type: application/json
+            Content-Type: application/json; charset=utf-8
 
     + Body
 
