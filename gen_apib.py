@@ -1,11 +1,7 @@
 import argparse
-import ast
-import os
-import re
 import json
+import yaml
 import traceback
-
-import jsonref
 
 # outer
 INFO_TEMPLATE = '''
@@ -17,33 +13,31 @@ HOST: {host}{basePath}
 {description}
 
 > Version: {version}
-'''.trim('\n')  # info groups
+'''.strip('\n')  # info & groups
 
 # each group (#)
 GROUP_TEMPLATE = '''
 # Group {group}
 
 {routes}
-'''.trim('\n')
+'''.strip('\n')
 
 # each route (##)
 ROUTE_TEMPLATE = '''
 ## {summary} [{route}]
-'''.trim('\n') # method demo
+
+{methods}
+'''.strip('\n')
 
 # each route method info (GET - xxx)
 METHOD_INFO_TEMPLATE = '''
 {method} - {summary} {description}
-'''  # req resp
+'''.strip('\n')  # req & resp
 
 # each route method demo (###)
 METHOD_DEMO_TEMPLATE = '''
 ### {summary} [{method}]
-'''.trim('\n')  # req resp
-
-
-def trim(content: str) -> str:
-    return content.strip(' \t\n')
+'''.strip('\n')  # req & resp
 
 
 def md_url(name: str, url: str, *, other: str = '') -> str:
@@ -62,7 +56,7 @@ def md_url(name: str, url: str, *, other: str = '') -> str:
     return ret
 
 
-def indent_string(indent: int, content: str) -> str:
+def indent_string(content: str, indent: int) -> str:
     lines = content.splitlines()
     for idx, line in enumerate(lines):
         lines[idx] = indent * ' ' + line
@@ -70,8 +64,8 @@ def indent_string(indent: int, content: str) -> str:
 
 
 def cat_newline(src: str, new: str, new_line_cnt: int = 0) -> str:
-    src = trim(src)
-    new = trim(new)
+    src = src.strip('\n')
+    new = new.strip('\n')
     bls = (new_line_cnt + 1) * '\n'
     return src + bls + new
 
@@ -97,17 +91,16 @@ def tmpl_main(obj: {}) -> str:
     info = cat_newline(info, service_info)
     info = cat_newline(info, license_info)
     info = cat_newline(info, contact_info)
-    info = trim(info)
+    return info
 
-
-def prehandle_obj(obj: {}) -> {}:
+def get_group_obj(obj: {}) -> {}:
     """
     parse paths dict to "group -> route -> method"
     """
     groups = {}
     for route, route_obj in obj['paths'].items():
         for method, method_obj in route_obj.items():
-            this_groups = ['Default'] if len(method_obj['groups']) == 0 else method_obj['groups']
+            this_groups = ['Default'] if len(method_obj['tags']) == 0 else method_obj['tags']
             for group in this_groups:
                 if group not in groups:
                     groups[group] = {}
@@ -117,124 +110,151 @@ def prehandle_obj(obj: {}) -> {}:
     return groups
 
 
-def tmpl_ctrl(groups: {}) -> str:
-    def parse_route(route_obj) -> str:
+def tmpl_ctrl(groups_obj: {}) -> str:
+    def parse_method_info(method: str, obj: {}) -> str:
+        # -> GET - Summary
+        tmpl = METHOD_INFO_TEMPLATE.format(
+            method=method.upper(),
+            summary=obj['summary'],
+            description=obj['description'] if 'description' in obj else ''
+        ).strip('')
+
+        req = ''
+        resp = ''
+        # Req Param
+        if 'parameters' in obj:
+            req = cat_newline(req, f'+ Request Parameter', 1)
+        for param in obj['parameters']:
+            p_name, p_in, p_desc = param['name'], param['in'], param['description']
+            if 'type' in param:
+                p_type = param['type']
+            elif 'schema' in param:
+                p_type = param['schema']['$ref'].strip('#/definitions/')
+            else:
+                p_type = 'unknown'
+            p_req = 'required' if param['required'] else 'not required'
+            p_def = f' (default: {param["default"]})' if 'default' in param else ''
+            if 'allowEmptyValue' in param:
+                p_empty = ' (allow empty)' if param['allowEmptyValue'] else ' (not empty)'
+            else:
+                p_empty = ''
+            req_param = f'{p_in}: `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
+            req_param = indent_string(req_param, 4)
+            req = cat_newline(req, f'+ {req_param}', 1)
+
+        # Resp 200
+        for code, resp_obj in obj['responses'].items():
+            # Resp Desc
+            if 'description' in resp_obj:
+                resp = cat_newline(resp, f'+ Response {code}', 1)
+                resp_desc = indent_string(resp_obj['description'], 4)
+                resp = cat_newline(resp, resp_desc, 1)
+            # Resp Header
+            if 'headers' in resp_obj:
+                resp = cat_newline(resp, f'+ Response {code} Header', 1)
+                for header, header_obj in resp_obj['headers'].items():
+                    resp_header = f'`{header}` ({header_obj["type"]})'
+                    resp_header = indent_string(resp_header, 4)
+                    resp = cat_newline(resp, resp_header, 1)
+            # Resp Body
+            if 'schema' in resp_obj:
+                resp = cat_newline(resp, f'+ Response {code} Body', 1)
+                resp_model = resp_obj['schema']['$ref'].strip('#/definitions/')
+                resp_model = indent_string(f'See {resp_model}', 4)
+                resp = cat_newline(resp, resp_model, 1)
+        tmpl = cat_newline(tmpl, req, 1)
+        tmpl = cat_newline(tmpl, resp, 1)
+        return tmpl
+
+
+    def parse_method_demo(method: str, obj: {}) -> str:
+        # -> ### Summary [GET]
+        tmpl = METHOD_DEMO_TEMPLATE.format(
+            summary=obj['summary'],
+            method=method.upper()
+        )
+        req_codes = list(obj['requests'].keys()) if 'requests' in obj else []
+        resp_codes = list(obj['responses'].keys()) if 'responses' in obj else []
+        for code in list(set(req_codes + resp_codes)):
+            req = ''
+            resp = ''
+            # Request 200
+            if 'requests' in obj and code in obj['requests']:
+                req = cat_newline(req, f'+ Request {code}', 1)
+                req_obj = obj['requests'][code]
+                # Header
+                if 'headers' in req_obj:
+                    req = cat_newline(req, indent_string('+ Headers', 4), 1)
+                    for header, header_obj in req_obj['headers'].items():
+                        req_header = f'{header}: {header_obj["description"]}'
+                        req_header = indent_string(req_header, 12)
+                        req = cat_newline(req, req_header, 1)
+                # Body
+                if 'examples' in req_obj:
+                    req = cat_newline(req, indent_string('+ Body', 4), 1)
+                    req_body = req_obj['examples']['application/json']
+                    req_body = indent_string(req_body, 12)
+                    req = cat_newline(req, req_body, 1)
+
+            # Response 200
+            if 'responses' in obj and code in obj['responses']:
+                resp = cat_newline(req, f'+ Response {code}', 1)
+                resp_obj = obj['responses'][code]
+                # Header
+                if 'headers' in resp_obj:
+                    resp = cat_newline(resp, indent_string('+ Headers', 4), 1)
+                    for header, header_obj in resp_obj['headers'].items():
+                        resp_header = f'{header}: {header_obj["description"]}'
+                        resp_header = indent_string(resp_header, 12)
+                        resp = cat_newline(resp, resp_header, 1)
+                # Body
+                if 'examples' in resp_obj:
+                    resp = cat_newline(resp, indent_string('+ Body', 4), 1)
+                    resp_body = resp_obj['examples']['application/json']
+                    resp_body = indent_string(resp_body, 12)
+                    resp = cat_newline(resp, resp_body, 1)
+            tmpl = cat_newline(tmpl, req, 1)
+            tmpl = cat_newline(tmpl, resp, 1)
+        return tmpl
+
+    def parse_route(route_obj: {}) -> str:
         """
         parse at '/v1/xxx': {'get': {xxx}}
         """
-        ret = ''
-        # Method Infos
-        for method, obj in route_obj.items():
-            # -> GET - Summary
-            tmpl = METHOD_INFO_TEMPLATE.format(
-                method=method.upper(),
-                summary=obj['summary'],
-                description=obj['description']
-            )
-            req = ''
-            resp = ''
-            # Req Param
-            req = cat_newline(req, f'+ Request Parameter', 1)
-            for param in obj['parameters']:
-                req_param = f'`{param["name"]}` ({param["type"]} {param["in"]})' + \
-                    f'{"required" if param["required"] else "not required"} - {param["description"]}'
-                if 'allowEmptyValue' in param:
-                    req_param += ' (allow empty)'
-                if 'default' in param:
-                    req_param += f' (default: {param["default"]})'
-                req = cat_newline(req, f'+ {req_param}', 1)
-            # Resp 200
-            for code, resp_obj in obj['response'].items():
-                desc = resp_obj['description']
-                headers = resp_obj['headers']
-                schema = resp_obj['schema']
-                # Resp Desc
-                if desc != '':
-                    resp = cat_newline(resp, f'+ Response {code}', 1)
-                    resp = cat_newline(resp, desc, 1)
-                # Resp Header
-                if headers is not None and len(headers) != 0:
-                    resp = cat_newline(resp, f'+ Response {code} Header', 1)
-                    for header, header_obj in headers.items():
-                        header_tip = header + ' - ' + header_obj["description"]
-                        resp = cat_newline(resp, header_tip, 1)
-                # Resp Body
-                if schema is not None:
-                    resp = cat_newline(resp, f'+ Response {code} Body', 1)
-                    model_name = schema['$ref'].trim('#/definitions/')
-                    resp = cat_newline(resp, f'See {model_name}', 1)
-            ret = cat_newline(ret, tmpl, 1)
-            ret = cat_newline(ret, req, 1)
-            ret = cat_newline(ret, resp, 1)
-
-        # Method Demos
+        method_infos = ''
+        method_demos = ''
         for method, method_obj in route_obj.items():
-            # -> ### Summary [GET]
-            tmpl = METHOD_DEMO_TEMPLATE.format(
-                summary=method_obj['summary'],
-                method=method.upper()
-            )
-            demos = ''
-            codes = list(method_obj['requests'].keys()) + list(method_obj['responses'].keys())
-            codes = list(set(codes))
-            for code in codes:
-                req = ''
-                resp = ''
-                # Request 200
-                if code in method_obj['requests']:
-                    req = cat_newline(req, f'+ Request {code}', 1)
-                    # Header
-                    headers_obj = code['headers']
-                    if headers_obj is not None and len(headers_obj) != 0:
-                        req = cat_newline(req, indent_string('+ Headers', 4), 1)
-                        for header, header_obj in headers_obj.items():
-                            header_str = indent_string(header + ': ' + header_obj['description'], 12)
-                            req = cat_newline(req, header_str, 1)
-                    # Body
-                    example_obj = code['examples']
-                    if example_obj is not None:
-                        req = cat_newline(req, indent_string('+ Body', 4), 1)
-                        json_str = example_obj['application/json']
-                        req = cat_newline(req, indent_string(json_str, 12), 1)
-
-                # Response 200
-                if code in method_obj['responses']:
-                    resp = cat_newline(resp, f'+ Response {code}', 1)
-                    # Header
-                    headers_obj = code['headers']
-                    if headers_obj is not None and len(headers_obj) != 0:
-                        resp = cat_newline(resp, indent_string('+ Headers', 4), 1)
-                        for header, header_obj in headers_obj.items():
-                            header_str = indent_string(header + ': ' + header_obj['description'], 12)
-                            resp = cat_newline(resp, header_str, 1)
-                    # Body
-                    example_obj = code['examples']
-                    if example_obj is not None:
-                        resp = cat_newline(resp, indent_string('+ Body', 4), 1)
-                        resp = cat_newline(resp, indent_string(example_obj['application/json'], 12), 1)
-                demos = cat_newline(demos, req, 1)
-                demos = cat_newline(demos, resp, 1)
-            ret = cat_newline(ret, tmpl, 1)
-            ret = cat_newline(ret, demos, 1)
+            method_info = parse_method_info(method, method_obj)
+            method_demo = parse_method_demo(method, method_obj)
+            method_infos = cat_newline(method_infos, method_info, 1)
+            method_demos = cat_newline(method_demos, method_demo, 1)
+        ret = ''
+        ret = cat_newline(ret, method_infos, 1)
+        ret = cat_newline(ret, method_demos, 1)
         return ret
 
-    groups = ''
-    for group, group_obj in groups.items():
+    out = ''
+    for group, group_obj in groups_obj.items():
         # -> # Group
         routes = ''
         for route, route_obj in group_obj.items():
             # -> ## Route [xxx]
             summary = [method_obj['summary'] for method_obj in route_obj.values()]
             summary = ' & '.join(summary)
+            methods = parse_route(route_obj)
             tmpl = ROUTE_TEMPLATE.format(
                 summary=summary,
-                route=route
+                route=route,
+                methods=methods
             )
-            methods = parse_route(route_obj)
             routes = cat_newline(routes, tmpl, 1)
-            routes = cat_newline(routes, methods, 1)
-        groups = cat_newline(groups, routes, 1)
-    return groups
+
+        tmpl = GROUP_TEMPLATE.format(
+            group=group,
+            routes=routes
+        )
+        out = cat_newline(out, tmpl, 1)
+    return out
 
 
 def parse():
@@ -261,16 +281,15 @@ def main():
 
     # !!
     apib = tmpl_main(spec)
-    groups_obj = prehandle(spec['paths'])
-    apib = cat_newlines(apib, tmpl_ctrl(groups_obj), 1)
-    print(apib)
-    # try:
-    #     print(f'> Saving {args.output}...')
-    #     with open(args.output, 'w') as f:
-    #         f.write(html)
-    # except:
-    #     print(f'Error: failed to save file {args.output}.')
-    #     exit(1)
+    groups_obj = get_group_obj(spec)
+    apib = cat_newline(apib, tmpl_ctrl(groups_obj), 1)
+    try:
+        print(f'> Saving {args.output}...')
+        with open(args.output, 'w') as f:
+            f.write(apib)
+    except:
+        print(f'Error: failed to save file {args.output}.')
+        exit(1)
 
 
 if __name__ == "__main__":

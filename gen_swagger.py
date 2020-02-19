@@ -1,7 +1,6 @@
 import argparse
 import json
 import yaml
-# 
 
 TEMPLATE = """
 <!DOCTYPE html>
