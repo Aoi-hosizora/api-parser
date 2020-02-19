@@ -62,13 +62,9 @@ paths:
                 "code": 400,
                 "message": "request param error"
               }
-          headers:
-            Content-Type: application/json; charset=utf-8
         '404':
           description: |-
             "user not found"
-          headers:
-            Content-Type: application/json; charset=utf-8
         '200':
           examples:
             application/json: |-
@@ -87,8 +83,6 @@ paths:
                   ]
                 }
               }
-          headers:
-            Content-Type: application/json; charset=utf-8
   /v1/user/subscribing:
     put:
       operationId: v1-user-subscribing-put
@@ -130,23 +124,15 @@ paths:
         '401':
           description: |-
             authorization failed, token has expired
-          headers:
-            Content-Type: application/json; charset=utf-8
         '400':
           description: |-
             "request param error", "request format error"
-          headers:
-            Content-Type: application/json; charset=utf-8
         '404':
           description: |-
             "user not found"
-          headers:
-            Content-Type: application/json; charset=utf-8
         '500':
           description: |-
             "subscribe failed"
-          headers:
-            Content-Type: application/json; charset=utf-8
         '200':
           examples:
             application/json: |-
@@ -162,8 +148,6 @@ paths:
                   }
                 ]
               }
-          headers:
-            Content-Type: application/json; charset=utf-8
     delete:
       operationId: v1-user-subscribing-delete
       summary: Unsubscribe user
@@ -186,8 +170,6 @@ paths:
         '401':
           description: |-
             authorization failed, token has expired
-          headers:
-            Content-Type: application/json; charset=utf-8
         '400':
           description: |-
             "request param error", "request format error"
@@ -206,8 +188,6 @@ paths:
         '404':
           description: |-
             "user not found"
-          headers:
-            Content-Type: application/json; charset=utf-8
         '500':
           description: |-
             "unsubscribe failed"
@@ -219,8 +199,6 @@ paths:
                 "code": 500,
                 "message": "unsubscribe failed"
               }
-          headers:
-            Content-Type: application/json; charset=utf-8
         '200':
           headers:
             Content-Type:
@@ -268,8 +246,6 @@ paths:
                   ]
                 }
               }
-          headers:
-            Content-Type: application/json; charset=utf-8
 definitions:
   LoginParam:
     title: LoginParam

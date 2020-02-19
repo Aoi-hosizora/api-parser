@@ -9,27 +9,31 @@
 
 ## Usage
 
-+ Usage in project see [vidorg/vid_backend](https://github.com/vidorg/vid_backend)
++ Swagger usage in project see [vidorg/vid_backend](https://github.com/vidorg/vid_backend)
++ Apib usage in project see [Aoi-hosizora/IM_MSA](https://github.com/Aoi-hosizora/IM_MSA)
 
-+ `gen_swagger`
++ `gen_yaml`
 
 ```bash
-python3 gen_swagger.py -m ./demo/swag/main.go -o ./demo/swagger.yaml -e go
+python3 gen_yaml.py -m ./demo/swag/main.go -s ./demo/swag/ -o ./demo/swagger.yaml -e go
+python3 gen_yaml.py -m ./demo/apib/main.go -s ./demo/apib/ -o ./demo/apiary.yaml -e go
 ```
 
 ```
-usage: gen_swagger.py [-h] -m MAIN -o OUTPUT [-e [EXT [EXT ...]]]
+usage: gen_yaml.py [-h] -m MAIN -s SOURCE [-n NEED_CONTENT_TYPE] -o OUTPUT [-e [EXT [EXT ...]]]
 optional arguments:
   -h, --help                                   show this help message and exit
   -m MAIN, --main MAIN                         path of main file containing swagger config
+  -s SOURCE, --source SOURCE                   path of source file
+  -n BOOL, --need_content_type BOOL            need Content-Type header or not
   -o OUTPUT, --output OUTPUT                   path of output yaml
   -e [EXT [EXT ...]], --ext [EXT [EXT ...]]    extensions of files wanted to parse
 ```
 
-+ `gen_swagger_html`
++ `gen_swagger`
 
 ```bash
-python3 gen_swagger_html.py -i ./demo/swagger.yaml -o ./demo/swagger.html
+python3 gen_swagger.py -i ./demo/swagger.yaml -o ./demo/swagger.html
 ```
 
 ```
@@ -43,41 +47,38 @@ optional arguments:
 + `gen_apib`
 
 ```bash
-python3 gen_apib.py -m ./demo/apib/main.go -o ./demo/apiary.apib -e go
+python3 gen_apib.py -i ./demo/apiary.yaml -o ./demo/apiary.apib
 ```
 
 ```
-usage: gen_apib.py [-h] -m MAIN -o OUTPUT [-e [EXT [EXT ...]]]
+usage: gen_apib.py [-h] -i INPUT -o OUTPUT
 optional arguments:
-  -h, --help                                   show this help message and exit
-  -m MAIN, --main MAIN                         path of main file containing swagger config
-  -o OUTPUT, --output OUTPUT                   path of output yaml
-  -e [EXT [EXT ...]], --ext [EXT [EXT ...]]    extensions of files wanted to parse
+  -h, --help                   show this help message and exit
+  -i INPUT, --input INPUT      path of input yaml file
+  -o OUTPUT, --output OUTPUT   path of output html file
 ```
 
-## Annotaton
-
-+ See [main.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/main.go) and [ctrl.go](https://github.com/Aoi-hosizora/swagger_apib_gen/blob/master/demo/ctrl.go)
+## Annotation
 
 ### Main File Format
 
 + Meta data (only single annotation)
 
 ```go
-// @Title
-// @Version
-// @Description
-// @TermsOfService
-// @Host
-// @BasePath
-// @License.Name
-// @License.Url
-// @Contact.Name
-// @Contact.Url
-// @Contact.Email
+// @Title            (required)
+// @Version          (required)
+// @Description      (required)
+// @TermsOfService   
+// @Host             (required)
+// @BasePath         (required)
+// @License.Name     
+// @License.Url      
+// @Contact.Name     
+// @Contact.Url      
+// @Contact.Email    
 ```
 
-+ Tag (multiple)
++ Tag (multiple) (not required)
 
 ```go
 // @Tag User      "User-Controller"
@@ -85,7 +86,7 @@ optional arguments:
 // @Tag $tag      "$description"
 ```
 
-+ DemoModel (single)
++ DemoModel (single) (not required)
     + see [Demo Model](#demo-model)
 
 ```go
@@ -93,16 +94,19 @@ optional arguments:
 // @DemoModel $jsonPath
 ```
 
-+ GlobalSecurity (multiple) 
-    + only support `apiKey`
++ GlobalSecurity (multiple) (not required)
+    + only support `apiKey` now
 
 ```go
 // @GlobalSecurity Jwt   Authorization header
 // @GlobalSecurity $name $field        $in
 ```
 
-+ Template (multiple)
-    + only support `@Param` `@ResponseDesc` `@ResponseHeader` `@Response`
++ Template (multiple) (not required)
+    + only support:
+    + `@Param`
+    + `@RequestHeader` `@RequestEx`
+    + `@ResponseDesc` `@ResponseHeader` `@ResponseModel` `@ResponseEx`
 
 ```go
 // @Template Auth.ResponseDesc 401 unauthorized user
@@ -115,12 +119,12 @@ optional arguments:
 + Meta data (single)
 
 ```go
-// @Router      xxx/{id}/xxx [GET]
-// @Summary     xxx
-// @Description xxx
+// @Router      xxx/{id}/xxx [GET]   (required)
+// @Summary     xxx                  (required)
+// @Description xxx                  
 ```
 
-+ Tag (multiple)
++ Tag (multiple) (not required)
 
 ```go
 // @Tag User
@@ -128,7 +132,7 @@ optional arguments:
 // @Tag $tag
 ```
 
-+ Param (multiple)
++ Param (multiple) (not required)
     + `in`: `query` `path` `header` `body` `formData`
     + `type`: `string` `integer` `number(float32)` `boolean` `#xxx`
     + `allowEmptyValue: *` means not set `allowEmptyValue` value
@@ -140,32 +144,32 @@ optional arguments:
 // @Param $name $in      $type          $required $allowEmptyValue "$comment"   ($default)
 ```
 
-+ Template (single)
++ Template (single) (not required)
 
 ```go
 // @Template Auth   Page
 // @Template $name1 $name2 $name3
 ```
 
-+ Security (multiple)
++ Security (multiple) (not required)
 
 ```go
 // @Security Jwt
 // @Security $name
 ```
 
-+ Accept & Produce (multiple)
++ Accept & Produce (multiple) (not required)
     + `application/json` `multipart/form-data` `text/xml` `text/plain` `text/html`
     + see [Mime Types](https://github.com/swaggo/swag#mime-types)
 
 ```go
 // @Accept  multipart/form-data
 // @Produce application/json
-// @Accpet  $mimeType
+// @Accept  $mimeType
 // @Produce $mimeType
 ```
 
-+ ResponseDesc (multiple)
++ ResponseDesc (multiple) (not required)
 
 ```go
 // @ResponseDesc 400   request param error
@@ -173,21 +177,21 @@ optional arguments:
 // @ResponseDesc $code $content
 ```
 
-+ ResponseHeader (single)
++ ResponseHeader (single) (not required)
 
 ```go
 // @ResponseHeader 200   {"Content-Type": "application/json; charset=utf-8" }
 // @ResponseHeader $code $json
 ```
 
-+ ResponseModel (single)
++ ResponseModel (single) (not required)
 
 ```go
 // @ResponseModel  200   #Result
-// @ResponseModel  $code $mdoel
+// @ResponseModel  $code $model
 ```
 
-+ Response (single)
++ Response (single) (not required)
 
 ```go
 /* @Response 200    { 
@@ -202,11 +206,11 @@ optional arguments:
 + Meta data (single)
 
 ```go
-// @Model
-// @Description
+// @Model         (required)
+// @Description   
 ```
 
-+ Property (mutiple)
++ Property (multiple) (not required)
     + `allowEmptyValue: *` means not set `allowEmptyValue` value
 
 ```go
@@ -219,7 +223,7 @@ optional arguments:
 
 ### Type Format
 
-+ Param
++ Param (`#Obj`)
 
 ```go
 // @Param xxx integer
@@ -232,7 +236,13 @@ optional arguments:
 // @Param xxx integer(enum:1,2,3,4) -> {1, 2, 3, 4}
 ```
 
-+ Model
++ ResponseModel (`#Obj`)
+
+```go
+// @ResponseModel 200 #UserDto
+```
+
++ Model (`object(#Obj) \ array(#Obj)`)
 
 ```go
 // @Property xxx integer
@@ -244,12 +254,6 @@ optional arguments:
 // @Property xxx string(enum:a,2,3\,4)
 // @Property xxx integer(enum:1,2,3,4)(format:integer32)
 // @Property xxx string(format:2000-01-01 00:00:00)
-```
-
-+ ResponseModel
-
-```go
-// @ResponseModel 200 #UserDto
 ```
 
 ### Demo Model
