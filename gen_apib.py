@@ -17,48 +17,29 @@ HOST: {host}{basePath}
 {description}
 
 > Version: {version}
-''' # info groups
+'''.trim('\n')  # info groups
 
 # each group (#)
 GROUP_TEMPLATE = '''
 # Group {group}
 
 {routes}
-'''
+'''.trim('\n')
 
 # each route (##)
 ROUTE_TEMPLATE = '''
 ## {summary} [{route}]
-
-{methods}
-
-{demos}
-'''
+'''.trim('\n') # method demo
 
 # each route method info (GET - xxx)
-METHOD_TEMPLATE = '''
+METHOD_INFO_TEMPLATE = '''
 {method} - {summary} {description}
-''' # req resp
+'''  # req resp
 
-# each demo (###)
-DEMO_TEMPLATE = '''
+# each route method demo (###)
+METHOD_DEMO_TEMPLATE = '''
 ### {summary} [{method}]
-
-{codes}
-'''
-
-# each demo code (200)
-DEMO_CODE_TEMPLATE = '''
-+ Request {code}
-
-    + Headers
-
-{header}
-
-    + Body
-
-{body}
-'''
+'''.trim('\n')  # req resp
 
 
 def trim(content: str) -> str:
@@ -135,89 +116,162 @@ def prehandle_obj(obj: {}) -> {}:
                 groups[group][route][method] = method_obj
     return groups
 
+
 def tmpl_ctrl(groups: {}) -> str:
+    def parse_route(route_obj) -> str:
+        """
+        parse at '/v1/xxx': {'get': {xxx}}
+        """
+        ret = ''
+        # Method Infos
+        for method, obj in route_obj.items():
+            # -> GET - Summary
+            tmpl = METHOD_INFO_TEMPLATE.format(
+                method=method.upper(),
+                summary=obj['summary'],
+                description=obj['description']
+            )
+            req = ''
+            resp = ''
+            # Req Param
+            req = cat_newline(req, f'+ Request Parameter', 1)
+            for param in obj['parameters']:
+                req_param = f'`{param["name"]}` ({param["type"]} {param["in"]})' + \
+                    f'{"required" if param["required"] else "not required"} - {param["description"]}'
+                if 'allowEmptyValue' in param:
+                    req_param += ' (allow empty)'
+                if 'default' in param:
+                    req_param += f' (default: {param["default"]})'
+                req = cat_newline(req, f'+ {req_param}', 1)
+            # Resp 200
+            for code, resp_obj in obj['response'].items():
+                desc = resp_obj['description']
+                headers = resp_obj['headers']
+                schema = resp_obj['schema']
+                # Resp Desc
+                if desc != '':
+                    resp = cat_newline(resp, f'+ Response {code}', 1)
+                    resp = cat_newline(resp, desc, 1)
+                # Resp Header
+                if headers is not None and len(headers) != 0:
+                    resp = cat_newline(resp, f'+ Response {code} Header', 1)
+                    for header, header_obj in headers.items():
+                        header_tip = header + ' - ' + header_obj["description"]
+                        resp = cat_newline(resp, header_tip, 1)
+                # Resp Body
+                if schema is not None:
+                    resp = cat_newline(resp, f'+ Response {code} Body', 1)
+                    model_name = schema['$ref'].trim('#/definitions/')
+                    resp = cat_newline(resp, f'See {model_name}', 1)
+            ret = cat_newline(ret, tmpl, 1)
+            ret = cat_newline(ret, req, 1)
+            ret = cat_newline(ret, resp, 1)
+
+        # Method Demos
+        for method, method_obj in route_obj.items():
+            # -> ### Summary [GET]
+            tmpl = METHOD_DEMO_TEMPLATE.format(
+                summary=method_obj['summary'],
+                method=method.upper()
+            )
+            demos = ''
+            codes = list(method_obj['requests'].keys()) + list(method_obj['responses'].keys())
+            codes = list(set(codes))
+            for code in codes:
+                req = ''
+                resp = ''
+                # Request 200
+                if code in method_obj['requests']:
+                    req = cat_newline(req, f'+ Request {code}', 1)
+                    # Header
+                    headers_obj = code['headers']
+                    if headers_obj is not None and len(headers_obj) != 0:
+                        req = cat_newline(req, indent_string('+ Headers', 4), 1)
+                        for header, header_obj in headers_obj.items():
+                            header_str = indent_string(header + ': ' + header_obj['description'], 12)
+                            req = cat_newline(req, header_str, 1)
+                    # Body
+                    example_obj = code['examples']
+                    if example_obj is not None:
+                        req = cat_newline(req, indent_string('+ Body', 4), 1)
+                        json_str = example_obj['application/json']
+                        req = cat_newline(req, indent_string(json_str, 12), 1)
+
+                # Response 200
+                if code in method_obj['responses']:
+                    resp = cat_newline(resp, f'+ Response {code}', 1)
+                    # Header
+                    headers_obj = code['headers']
+                    if headers_obj is not None and len(headers_obj) != 0:
+                        resp = cat_newline(resp, indent_string('+ Headers', 4), 1)
+                        for header, header_obj in headers_obj.items():
+                            header_str = indent_string(header + ': ' + header_obj['description'], 12)
+                            resp = cat_newline(resp, header_str, 1)
+                    # Body
+                    example_obj = code['examples']
+                    if example_obj is not None:
+                        resp = cat_newline(resp, indent_string('+ Body', 4), 1)
+                        resp = cat_newline(resp, indent_string(example_obj['application/json'], 12), 1)
+                demos = cat_newline(demos, req, 1)
+                demos = cat_newline(demos, resp, 1)
+            ret = cat_newline(ret, tmpl, 1)
+            ret = cat_newline(ret, demos, 1)
+        return ret
+
+    groups = ''
     for group, group_obj in groups.items():
         # -> # Group
         routes = ''
         for route, route_obj in group_obj.items():
             # -> ## Route [xxx]
-            methods = ''
-            for method, obj in route_obj.items():
-                # -> GET - xxx
-                # -> Request xxx
-                req, resp = '', ''
-                tmpl = METHOD_TEMPLATE.format(
-                    method=method,
-                    summary=obj['summary'],
-                    description=obj['description']
-                )
-                pass
-            demos = ''
-            for method, method_obj in route_obj.items():
-                # -> ### Route [GET]
-                pass
+            summary = [method_obj['summary'] for method_obj in route_obj.values()]
+            summary = ' & '.join(summary)
+            tmpl = ROUTE_TEMPLATE.format(
+                summary=summary,
+                route=route
+            )
+            methods = parse_route(route_obj)
+            routes = cat_newline(routes, tmpl, 1)
+            routes = cat_newline(routes, methods, 1)
+        groups = cat_newline(groups, routes, 1)
+    return groups
+
 
 def parse():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m', '--main', type=str,
-                        required=True, help='path of main file containing swagger config')
+    parser.add_argument('-i', '--input', type=str,
+                        required=True, help='path of input yaml file')
     parser.add_argument('-o', '--output', type=str,
-                        required=True, help='path of output yaml')
-    parser.add_argument('-e', '--ext', type=str, nargs='*',
-                        default=[], help='extensions of files wanted to parse')
+                        required=True, help='path of output html file')
     args = parser.parse_args()
     return args
 
 
 def main():
     args = parse()
-    main_file = args.main
-    all_files = [main_file]
-    for root, _, files in os.walk('.'):
-        for f in files:
-            if len(args.ext) == 0 or f.split('.')[-1] in args.ext:
-                all_files.append(os.path.join(root, f))
-
-    # main
-    print(f'> Parsing {main_file}...')
-    out = gen_main(main_file)
-
-    # demo response
-    if out['demoModel'] != '':
-        print(f'> Parsing {out["demoModel"]}...')
-        try:
-            demo_model = open(out['demoModel'], 'r', encoding='utf-8').read()
-            demo_model = str(jsonref.loads(demo_model))
-            demo_model = ast.literal_eval(demo_model)
-        except:
-            # traceback.print_exc()
-            demo_model = None
-        out['demoModel'] = ''
-    else:
-        demo_model = None
-
-    # global template
-    template = out['template']
-    out['template'] = {}
-
-    # ctrl
-    print(f'> Parsing {main_file}...')
-    paths = gen_ctrls(all_files, demo_model=demo_model, template=template)
-    out['paths'] = paths
-
-    # apib
-    print(f'> Generate apib...')
-    apib = gen_apib(out)
-
-    # save
-    print(f'> Saving {args.output}...')
     try:
-        with open(args.output, 'w', encoding='utf-8') as f:
-            f.write(apib)
+        print(f'> Reading {args.input}...')
+        content = open(args.input, 'r', encoding='utf-8').read()
     except:
-        print(f'Error: failed to save file {args.output}.')
+        print(f'Error: failed to open file {args.input}.')
         exit(1)
+        return
+
+    spec = yaml.load(content, Loader=yaml.FullLoader)
+
+    # !!
+    apib = tmpl_main(spec)
+    groups_obj = prehandle(spec['paths'])
+    apib = cat_newlines(apib, tmpl_ctrl(groups_obj), 1)
+    print(apib)
+    # try:
+    #     print(f'> Saving {args.output}...')
+    #     with open(args.output, 'w') as f:
+    #         f.write(html)
+    # except:
+    #     print(f'Error: failed to save file {args.output}.')
+    #     exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
