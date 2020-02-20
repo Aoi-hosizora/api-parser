@@ -136,49 +136,41 @@ def tmpl_model(def_obj: {}, token: str, is_req: bool, *, prefix: str = 'body') -
     if 'required' not in obj:
         obj['required'] = []
     ret = ''
-    if is_req:
-        # in: `name` (type) req - desc (empty) (def)
-        for prop, po in obj['properties'].items():
-            p_type = po['type']
-            p_desc = po['description']
-            p_req = 'required' if prop in obj['required'] else 'not required'
-            p_def = f' (default: {po["default"]})' if 'default' in po else ''
-            if 'allowEmptyValue' in po:
-                p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
-            else:
-                p_empty = ''
+    
+    for prop, po in obj['properties'].items():
+        p_type = po['type']
+        p_desc = po['description']
+        p_req = 'required' if prop in obj['required'] else 'not required'
+        p_ex = f' (example: {po["example"]})' if 'example' in po else ''
+        p_def = f' (default: {po["default"]})' if 'default' in po else ''
+        if 'allowEmptyValue' in po:
+            p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
+        else:
+            p_empty = ''
+
+        # out
+        if is_req:
+            # in: `name` (type) req - desc (empty) (def)
             ret = strcat(ret, f'+ {prefix}: `{prop}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}')
-            if 'enum' in po:
-                ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
-            nest_type = ''
-            if p_type == 'object':
-                nest_type = po['$ref']
-            elif p_type == 'array':
-                nest_type = po['items']['$ref']
-            if nest_type != '':
-                nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=p_type).strip('\n')
-                ret = strcat(ret, indent(nest_tmpl, 4))
-    else:
-        # in: `name` (type) - desc (empty) (example)
-        for prop, po in obj['properties'].items():
-            p_type = po['type']
-            p_desc = po['description']
-            p_ex = f' (example: {po["example"]})' if 'example' in po else ''
-            if 'allowEmptyValue' in po:
-                p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
-            else:
-                p_empty = ''
+        else:
+            # in: `name` (type) - desc (empty) (example)
             ret = strcat(ret, f'+ {prefix}: `{prop}` ({p_type}) - {p_desc}{p_empty}{p_ex}')
-            if 'enum' in po:
-                ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
-            nest_type = ''
-            if p_type == 'object':
-                nest_type = po['$ref']
-            elif p_type == 'array':
-                nest_type = po['items']['$ref']
-            if nest_type != '':
-                nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=p_type).strip('\n')
-                ret = strcat(ret, indent(nest_tmpl, 4))
+        
+        # enum format
+        if 'enum' in po:
+            ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
+        if 'format' in po:
+            ret = strcat(ret, indent(f'+ format: {po["format"]}', 4))
+
+        # nest
+        nest_type = ''
+        if p_type == 'object':
+            nest_type = po['$ref']
+        elif p_type == 'array':
+            nest_type = po['items']['$ref']
+        if nest_type != '':
+            nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=p_type).strip('\n')
+            ret = strcat(ret, indent(nest_tmpl, 4))
     return ret
 
 
@@ -217,6 +209,8 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
             req = strcat(req, indent(req_param, 4), 1 if idx == 0 else 0)
             if 'enum' in param:
                 req = strcat(req, indent(f'+ enum: {param["enum"]}', 8))
+            if 'format' in param:
+                req = strcat(req, indent(f'+ format: {param["format"]}', 8))
 
         # Resp 200
         codes = [int(c) for c in obj['responses'].keys()]
