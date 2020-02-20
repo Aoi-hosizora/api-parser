@@ -139,9 +139,10 @@ optional arguments:
     + See [Param Type](https://github.com/swaggo/swag#param-type) and [Data Type](https://github.com/swaggo/swag#data-type) 
 
 ```go
-// @Param uid   formData integer        true      false            "user id"    1
-// @Param param body     #LoginParam    true      false            "loginParam"
-// @Param $name $in      $type          $required $allowEmptyValue "$comment"   ($default)
+// @Param uid   formData integer     true      "user id"    (example:2)  (default:1)
+// @Param uid2  formData integer     true      "user id"    (empty:true) (default:1) (example:2)
+// @Param param body     #LoginParam true      "loginParam" (empty:false)
+// @Param $name $in      $type       $required "$comment"   ($empty)($default)($example)
 ```
 
 + Template (single) (not required)
@@ -211,14 +212,13 @@ optional arguments:
 ```
 
 + Property (multiple) (not required)
-    + `allowEmptyValue: *` means not set `allowEmptyValue` value
 
 ```go
-// @Property username string                 true      false            "username"     ExampleUsername
-// @Property expire   integer                false     true             "login expire" 86400
-// @Property other    object(#LoginParamRef) false     true             "other param"
-// @Property others   array(#LoginParamRef)  false     true             "other param"
-// @Property $name    $type($model)          $required $allowEmptyValue $description   ($example)
+// @Property username string                 true      "username"     (empty:false) (example:ExampleUsername)
+// @Property expire   integer                false     "login expire" (empty:true)  (example:86400)
+// @Property other    object(#LoginParamRef) false     "other param"
+// @Property others   array(#LoginParamRef)  false     "other param"  (empty:false)
+// @Property $name    $type($model)          $required $description   ($empty)($example)
 ```
 
 ### Type Format

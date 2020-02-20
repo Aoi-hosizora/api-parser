@@ -5,8 +5,8 @@ package main
 // @Description         Query user's subscribers, return page data
 // @Tag                 User
 // @Tag                 Subscribe
-// @Param               uid path integer true false "user id" 1
-// @Param               page query integer false true "page" 1
+// @Param               uid path integer true "user id" (empty:false) (example:1)
+// @Param               page query integer false "page" (empty:true) (default:1)
 // @Accept              multipart/form-data
 // @ResponseDesc 400    "request param error"
 // @ResponseDesc 404    "user not found"
@@ -23,8 +23,8 @@ package main
 // @Description         Subscribe someone
 // @Tag                 User
 // @Tag                 Subscribe
-// @Param               to formData integer true false "user id"
-// @Param               to2 formData integer(enum:1,2,3) true false "user id"
+// @Param               to formData integer true "user id" (empty:false)
+// @Param               to2 formData integer(enum:1,2,3) true "user id"
 // @Accept              multipart/form-data
 // @Produce             application/json
 // @ResponseDesc 400    "request param error"
@@ -45,7 +45,7 @@ func func1() {
 // @Template            Auth
 // @Summary             Unsubscribe user
 // @Tag                 User
-// @Param               to formData integer true false "user id"
+// @Param               to formData integer true "user id" (empty:false)
 // @ResponseDesc 400    "request param error"
 // @ResponseDesc 400    "request format error"
 // @ResponseDesc 404    "user not found"
@@ -70,7 +70,7 @@ func func2() {
 // @Router           /v1/auth/login [POST]
 // @Summary          Login
 // @Tag              Authorization
-// @Param            param body #LoginParam true false "login param"
+// @Param            param body #LoginParam true "login param"
 // @ResponseDesc     200 "OK"
 /* @ResponseEx 200   ${resp_user} */
 func func3() {

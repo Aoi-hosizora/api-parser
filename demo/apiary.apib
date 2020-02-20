@@ -21,7 +21,7 @@ GET - User's subscribers (Query user's subscribers, return page data)
 
 + Request Parameter
 
-    + path: `uid` (integer) required - user id (not empty) (default: 1)
+    + path: `uid` (integer) required - user id (not empty)
     + query: `page` (integer) not required - page (allow empty) (default: 1)
 
 + Response 200 Header
@@ -103,10 +103,10 @@ PUT - Subscribe user (Subscribe someone)
 
 + Request Parameter
 
-    + header: `Authorization` (string) required - Login Token (allow empty)
+    + header: `Authorization` (string) required - Login Token (not empty)
     + header: `other` (integer) not required - other header (not empty)
     + formData: `to` (integer) required - user id (not empty)
-    + formData: `to2` (integer) required - user id (not empty)
+    + formData: `to2` (integer) required - user id
 
 + Response 400
 
@@ -128,14 +128,14 @@ DELETE - Unsubscribe user
 
 + Request Parameter
 
-    + header: `Authorization` (string) required - Login Token (allow empty)
+    + header: `Authorization` (string) required - Login Token (not empty)
     + formData: `to` (integer) required - user id (not empty)
 
 + Response 200 Body
 
     + Result
-        + body: `code` (integer) - status code (not empty) (example: 200)
-        + body: `message` (string) - status message (not empty) (example: success)
+        + body: `code` (integer) - status code
+        + body: `message` (string) - status message
 
 + Response 400
 
@@ -144,8 +144,8 @@ DELETE - Unsubscribe user
 + Response 400 Body
 
     + Result
-        + body: `code` (integer) - status code (not empty) (example: 200)
-        + body: `message` (string) - status message (not empty) (example: success)
+        + body: `code` (integer) - status code
+        + body: `message` (string) - status message
 
 + Response 401
 
@@ -162,8 +162,8 @@ DELETE - Unsubscribe user
 + Response 500 Body
 
     + Result
-        + body: `code` (integer) - status code (not empty) (example: 200)
-        + body: `message` (string) - status message (not empty) (example: success)
+        + body: `code` (integer) - status code
+        + body: `message` (string) - status message
 
 ### Subscribe user [PUT]
 
@@ -284,9 +284,9 @@ POST - Login
     + body: `password` (string) required - password
     + body: `expire` (integer) not required - login expire
     + body: `other` (object) not required - other param
-        + body: `other` (string) not required - other param (allow empty)
+        + body: `other` (string) not required - other param
     + body: `others` (array) not required - other param
-        + body: `other` (string) not required - other param (allow empty)
+        + body: `other` (string) not required - other param
     + body: `enum` (string) not required - other param
     + body: `enum2` (integer) not required - other param
     + body: `format` (string) not required - other param

@@ -18,7 +18,7 @@ package main
 // @DemoModel                   ./demo/demo.json
 // @Template Auth.ResponseDesc  401 authorization failed
 // @Template Auth.ResponseDesc  401 token has expired
-// @Template Other.Param    	other header integer false false "other header"
+// @Template Other.Param    	other header integer false "other header" (empty:false)
 func main() {
 
 }

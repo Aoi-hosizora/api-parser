@@ -26,6 +26,20 @@ def split_bs(content: str) -> []:
     return [trim(cnt.replace(',,', ' ')) for cnt in ret]
 
 
+def split_bs_item(content: str) -> {}:
+    """
+    split (a:b)(c:d)(e) -> {'a': 'b', 'c': 'd', 'e': ''}
+    """
+    bl_ptn = re.compile(r'\((.+?)\)')
+    arr = bl_ptn.findall(content)
+    obj = {}
+    for item in arr:
+        sp = item.split(':')
+        v = ''.join(sp[1:]) if len(sp) > 1 else ''
+        obj[trim(sp[0])] = trim(v)
+    return obj
+
+
 def split_comma(content: str) -> []:
     """
     split string through , (except \,)
@@ -392,32 +406,36 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
         read_tmpl(param_arr, 'Param')
         param_arr.extend(split_array(tokens, 'Param'))
         for param in param_arr:
-            pname, pin, ptype, preq, pempty, *pother = split_bs(param)
-            pname, pin, ptype = trim(pname), trim(pin), trim(ptype)
-            preq, pempty = trim(preq.lower()), trim(pempty.lower())
+            pname, pin, ptype, preq, *pother = split_bs(param)
+            pname, pin, ptype, preq = trim(pname), trim(pin), trim(ptype), trim(preq.lower())
 
             pother = trim(' '.join(pother))
             pother_sp = re.compile(r'"(.*)"(.*)').findall(pother)
             pdesc = trim(pother_sp[0][0])
-            pdefault = trim(pother_sp[0][1])
+            pother = trim(pother_sp[0][1])
 
+            # meta
             obj = {
                 'name': pname,
                 'in': pin,
                 'type': ptype,
                 'required': preq == 'true',
-                'allowEmptyValue': pempty == 'true',
                 'description': pdesc,
-                'default': pdefault
             }
-            if pempty == '*':
-                del obj['allowEmptyValue']
-            if pdefault != '':
-                if ptype == 'integer' or ptype == 'number':
-                    obj['default'] = int(obj['default'])
-                elif ptype == 'float' or ptype == 'double':
-                    obj['default'] = float(obj['default'])
 
+            # other
+            psetting = split_bs_item(pother)
+            for k, v in psetting.items():
+                if k == 'example' or k == 'default':
+                    v = int(v) if ptype == 'integer' or ptype == 'number' else float(v) if ptype == 'float' or ptype == 'double' else v
+                elif k == 'empty':
+                    k = 'allowEmptyValue'
+                    v = v.lower() == 'true'
+                else:
+                    continue
+                obj[k] = v
+
+            # type
             # enum -> string(enum:a,b,c)
             # object -> #Result
             ptype_op = split_type(ptype)
@@ -580,31 +598,35 @@ def gen_model(content: str) -> (str, {}):
         requires = []
         props = split_array(tokens, 'Property')
         for prop in props:
-            pname, ptype, preq, pempty, *pother = split_bs(prop)
-            pname, ptype = trim(pname), trim(ptype)
-            preq, pempty = trim(preq.lower()), trim(pempty.lower())
+            pname, ptype, preq, *pother = split_bs(prop)
+            pname, ptype, preq = trim(pname), trim(ptype), trim(preq.lower())
 
             pother = trim(' '.join(pother))
             pother_sp = re.compile(r'"(.*)"(.*)').findall(pother)
             pdesc = trim(pother_sp[0][0])
-            pexample = trim(pother_sp[0][1])
+            psetting = trim(pother_sp[0][1])
 
+            # meta
             if preq == 'true':
                 requires.append(pname)
             obj = {
                 'description': pdesc,
                 'type': ptype,
-                'allowEmptyValue': pempty == 'true',
-                'example': pexample
             }
-            if pempty == '*':
-                del obj['allowEmptyValue']
-            if pexample != '':
-                if ptype == 'integer' or ptype == 'number':
-                    obj['example'] = int(obj['example'])
-                elif ptype == 'float' or ptype == 'double':
-                    obj['example'] = float(obj['example'])
 
+            # setting
+            psetting = split_bs_item(pother)
+            for k, v in psetting.items():
+                if k == 'example' or k == 'default':
+                    v = int(v) if ptype == 'integer' or ptype == 'number' else float(v) if ptype == 'float' or ptype == 'double' else v
+                elif k == 'empty':
+                    k = 'allowEmptyValue'
+                    v = v.lower() == 'true'
+                else:
+                    continue
+                obj[k] = v
+
+            # type
             # enum -> string(enum:a,b,c)
             # nest -> object(#Result)
             ptype_op = split_type(ptype)

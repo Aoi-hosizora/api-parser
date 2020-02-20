@@ -41,15 +41,15 @@ paths:
         in: path
         type: integer
         required: true
-        allowEmptyValue: false
         description: user id
-        default: 1
+        allowEmptyValue: false
+        example: 1
       - name: page
         in: query
         type: integer
         required: false
-        allowEmptyValue: true
         description: page
+        allowEmptyValue: true
         default: 1
       security: []
       responses:
@@ -100,19 +100,18 @@ paths:
         in: header
         type: integer
         required: false
-        allowEmptyValue: false
         description: other header
+        allowEmptyValue: false
       - name: to
         in: formData
         type: integer
         required: true
-        allowEmptyValue: false
         description: user id
+        allowEmptyValue: false
       - name: to2
         in: formData
         type: integer
         required: true
-        allowEmptyValue: false
         description: user id
         enum:
         - 1
@@ -162,8 +161,8 @@ paths:
         in: formData
         type: integer
         required: true
-        allowEmptyValue: false
         description: user id
+        allowEmptyValue: false
       security:
       - Jwt: []
       responses:
@@ -220,7 +219,6 @@ paths:
       - name: param
         in: body
         required: true
-        allowEmptyValue: false
         description: login param
         schema:
           $ref: '#/definitions/LoginParam'
@@ -304,7 +302,6 @@ definitions:
       other:
         description: other param
         type: string
-        allowEmptyValue: true
   Result:
     title: Result
     description: global result model
@@ -316,10 +313,6 @@ definitions:
       code:
         description: status code
         type: integer
-        allowEmptyValue: false
-        example: 200
       message:
         description: status message
         type: string
-        allowEmptyValue: false
-        example: success
