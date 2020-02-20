@@ -107,6 +107,7 @@ PUT - Subscribe user (Subscribe someone)
     + header: `other` (integer) not required - other header (not empty)
     + formData: `to` (integer) required - user id (not empty)
     + formData: `to2` (integer) required - user id
+        + enum: [1, 2, 3]
 
 + Response 400
 
@@ -284,11 +285,13 @@ POST - Login
     + body: `password` (string) required - password
     + body: `expire` (integer) not required - login expire
     + body: `other` (object) not required - other param
-        + body: `other` (string) not required - other param
+        + object: `other` (string) not required - other param
     + body: `others` (array) not required - other param
-        + body: `other` (string) not required - other param
+        + array: `other` (string) not required - other param
     + body: `enum` (string) not required - other param
+        + enum: ['a', '2', '3,4']
     + body: `enum2` (integer) not required - other param
+        + enum: [5, 6, 7, 8]
     + body: `format` (string) not required - other param
 
 + Response 200

@@ -106,6 +106,7 @@ def tmpl_main(obj: {}) -> str:
     info = strcat(info, contact_info)
     return info
 
+
 def prehandle_paths(paths: {}) -> {}:
     """
     parse paths dict to "group -> route -> method"
@@ -122,7 +123,7 @@ def prehandle_paths(paths: {}) -> {}:
     return groups
 
 
-def tmpl_model(def_obj: {}, token: str, is_req: bool) -> str:
+def tmpl_model(def_obj: {}, token: str, is_req: bool, *, prefix: str = 'body') -> str:
     """
     parse #/definitions/xxx for request or response param
     """
@@ -146,14 +147,16 @@ def tmpl_model(def_obj: {}, token: str, is_req: bool) -> str:
                 p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
             else:
                 p_empty = ''
-            ret = strcat(ret, f'+ body: `{prop}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}')
+            ret = strcat(ret, f'+ {prefix}: `{prop}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}')
+            if 'enum' in po:
+                ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
             nest_type = ''
             if p_type == 'object':
                 nest_type = po['$ref']
             elif p_type == 'array':
                 nest_type = po['items']['$ref']
             if nest_type != '':
-                nest_tmpl = tmpl_model(def_obj, nest_type, is_req).strip('\n')
+                nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=p_type).strip('\n')
                 ret = strcat(ret, indent(nest_tmpl, 4))
     else:
         # in: `name` (type) - desc (empty) (example)
@@ -165,16 +168,19 @@ def tmpl_model(def_obj: {}, token: str, is_req: bool) -> str:
                 p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
             else:
                 p_empty = ''
-            ret = strcat(ret, f'+ body: `{prop}` ({p_type}) - {p_desc}{p_empty}{p_ex}')
+            ret = strcat(ret, f'+ {prefix}: `{prop}` ({p_type}) - {p_desc}{p_empty}{p_ex}')
+            if 'enum' in po:
+                ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
             nest_type = ''
             if p_type == 'object':
                 nest_type = po['$ref']
             elif p_type == 'array':
                 nest_type = po['items']['$ref']
             if nest_type != '':
-                nest_tmpl = tmpl_model(def_obj, nest_type, is_req).strip('\n')
+                nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=p_type).strip('\n')
                 ret = strcat(ret, indent(nest_tmpl, 4))
     return ret
+
 
 def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
     def parse_method_info(method: str, obj: {}) -> str:
@@ -208,8 +214,9 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
             else:
                 p_empty = ''
             req_param = f'+ {p_in}: `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
-            req_param = indent(req_param, 4)
-            req = strcat(req, f'{req_param}', 1 if idx == 0 else 0)
+            req = strcat(req, indent(req_param, 4), 1 if idx == 0 else 0)
+            if 'enum' in param:
+                req = strcat(req, indent(f'+ enum: {param["enum"]}', 8))
 
         # Resp 200
         codes = [int(c) for c in obj['responses'].keys()]
@@ -241,7 +248,6 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
         tmpl = strcat(tmpl, req, 1)
         tmpl = strcat(tmpl, resp, 1)
         return tmpl
-
 
     def parse_method_demo(method: str, obj: {}) -> str:
         # -> ### Summary [GET]
