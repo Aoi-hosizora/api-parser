@@ -21,7 +21,7 @@ python3 gen_yaml.py \
     -e go
 
 echo 
-echo Generating apiary html...
+echo Generating apiary apib...
 python3 gen_apib.py \
     -i ./demo/apiary.yaml \
     -o ./demo/apiary.apib

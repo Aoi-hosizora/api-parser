@@ -17,12 +17,12 @@ This is a demo api
 
 ## User's subscribers [/v1/user/{uid}/subscriber]
 
-GET - User's subscribers (Query user's subscribers, return page data)
+> GET `/v1/user/{uid}/subscriber` - User's subscribers (Query user's subscribers, return page data)
 
 + Request Parameter
 
-    + path: `uid` (integer) required - user id (not empty)
-    + query: `page` (integer) not required - page (allow empty) (default: 1)
+    + `path` : `uid` (integer) required - user id (not empty)
+    + `query` : `page` (integer) not required - page (allow empty) (default: 1)
 
 + Response 200 Header
 
@@ -99,14 +99,14 @@ GET - User's subscribers (Query user's subscribers, return page data)
 
 ## Subscribe user & Unsubscribe user [/v1/user/subscribing]
 
-PUT - Subscribe user (Subscribe someone)
+> PUT `/v1/user/subscribing` - Subscribe user (Subscribe someone)
 
 + Request Parameter
 
-    + header: `Authorization` (string) required - Login Token (not empty)
-    + header: `other` (integer) not required - other header (not empty)
-    + formData: `to` (integer) required - user id (not empty)
-    + formData: `to2` (integer) required - user id
+    + `header` : `Authorization` (string) required - Login Token (not empty)
+    + `header` : `other` (integer) not required - other header (not empty)
+    + `formData` : `to` (integer) required - user id (not empty)
+    + `formData` : `to2` (integer) required - user id
         + enum: [1, 2, 3]
 
 + Response 400
@@ -125,28 +125,24 @@ PUT - Subscribe user (Subscribe someone)
 
     + "subscribe failed"
 
-DELETE - Unsubscribe user
+> DELETE `/v1/user/subscribing` - Unsubscribe user
 
 + Request Parameter
 
-    + header: `Authorization` (string) required - Login Token (not empty)
-    + formData: `to` (integer) required - user id (not empty)
+    + `header` : `Authorization` (string) required - Login Token (not empty)
+    + `formData` : `to` (integer) required - user id (not empty)
 
 + Response 200 Body
-
-    + Result
-        + body: `code` (integer) - status code
-        + body: `message` (string) - status message
+    + `body` : `code` (integer) - status code
+    + `body` : `message` (string) - status message
 
 + Response 400
 
     + "request param error", "request format error"
 
 + Response 400 Body
-
-    + Result
-        + body: `code` (integer) - status code
-        + body: `message` (string) - status message
+    + `body` : `code` (integer) - status code
+    + `body` : `message` (string) - status message
 
 + Response 401
 
@@ -161,10 +157,8 @@ DELETE - Unsubscribe user
     + "unsubscribe failed"
 
 + Response 500 Body
-
-    + Result
-        + body: `code` (integer) - status code
-        + body: `message` (string) - status message
+    + `body` : `code` (integer) - status code
+    + `body` : `message` (string) - status message
 
 ### Subscribe user [PUT]
 
@@ -277,24 +271,22 @@ DELETE - Unsubscribe user
 
 ## Login [/v1/auth/login]
 
-POST - Login
+> POST `/v1/auth/login` - Login
 
 + Request Parameter
 
-    + body: `username` (string) required - username
-    + body: `password` (string) required - password
-    + body: `expire` (integer) not required - login expire
-    + body: `other` (object) not required - other param
-        + object: `other` (string) not required - other param
-    + body: `others` (array) not required - other param
-        + array: `other` (string) not required - other param
-    + body: `enum` (string) not required - other param
+    + `body` : `username` (string) required - username
+    + `body` : `password` (string) required - password
+    + `body` : `expire` (integer) not required - login expire
+    + `body` : `other` (object) not required - other param
+        + `other` : `other` (string) not required - other param
+    + `body` : `others` (array) not required - other param
+        + `others` : `other` (string) not required - other param
+    + `body` : `enum` (string) not required - other param
         + enum: ['a', '2', '3,4']
-    + body: `enum2` (integer) not required - other param
+    + `body` : `enum2` (integer) not required - other param
         + enum: [5, 6, 7, 8]
-        + format: integer32
-    + body: `format` (string) not required - other param
-        + format: 2000-01-01 00:00:00
+    + `body` : `format` (string) not required - other param
 
 + Response 200
 

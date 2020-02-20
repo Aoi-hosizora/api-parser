@@ -170,6 +170,20 @@ optional arguments:
 // @Produce $mimeType
 ```
 
++ RequestHeader (single) (not required)
+
+```go
+// @RequestHeader 200   {"Content-Type": "application/json" }
+// @RequestHeader $code $json
+```
+
++ RequestEx (single) (not required)
+
+```go
+// @RequestEx 200   {"to": 1, "status": "ok"}
+// @RequestEx $code $json
+```
+
 + ResponseDesc (multiple) (not required)
 
 ```go
@@ -192,14 +206,14 @@ optional arguments:
 // @ResponseModel  $code $model
 ```
 
-+ Response (single) (not required)
++ ResponseEx (single) (not required)
 
 ```go
-/* @Response 200    { 
+/* @ResponseEx 200  { 
                         "code": 200, 
                         "message": "success"
                     } */
-// @Response $code $json
+// @ResponseEx $code $json
 ```
 
 ### Model File Format
@@ -222,6 +236,11 @@ optional arguments:
 ```
 
 ### Type Format
+
++ Model property / parameter
+    + After type: `(enum:xx)` `(format:xx)`
+    + After desc: `(empty:true)` `(example:xx)` `(default:xx)`
+    + `@Param xxx string(enum:a,b,c)(format:test) "xxx parameter" (empty:false)(example:a)(default:a)`
 
 + Param (`#Obj`)
 
@@ -258,7 +277,7 @@ optional arguments:
 
 ### Demo Model
 
-+ Support `$ref` type of json in `@ResponseDesc` `@ResponseHeader` `@Response`
++ Support `$ref` type of json in `@RequestHeader` `@RequestEx` `@ResponseDesc` `@ResponseHeader` `@ResponseEx`
 
 ```json
 {

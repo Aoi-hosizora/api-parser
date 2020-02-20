@@ -31,7 +31,7 @@ ROUTE_TEMPLATE = '''
 
 # each route method info (GET - xxx)
 METHOD_INFO_TEMPLATE = '''
-{method} - {summary} {description}
+> {method} `{route}` - {summary} {description}
 '''.strip('\n')  # req & resp
 
 # each route method demo (###)
@@ -83,10 +83,21 @@ def strcat(src: str, new: str, new_line_cnt: int = 0) -> str:
     return src + bls + new
 
 
+def field(obj: {}, *names: str):
+    out = obj
+    for name in names:
+        if name in out:
+            out = out[name]
+        else:
+            return ''
+    return out
+
+
 def tmpl_main(obj: {}) -> str:
-    service_info = obj['info']['termsOfService']
-    license_info = md_url(obj['info']['license']['name'], obj['info']['license']['url'])
-    contact_info = md_url(obj['info']['contact']['name'], obj['info']['contact']['url'], other=obj['info']['contact']['email'])
+    service_info = field(field(obj, 'info', 'termsOfService'))
+    license_info = md_url(field(obj, 'info', 'license', 'name'), field(obj, 'info', 'license', 'url'))
+    contact_info = md_url(field(obj, 'info', 'contact', 'name'), field(obj, 'info', 'contact', 'url'),
+                          other=field(obj, 'info', 'contact', 'email'))
     if service_info != '':
         service_info = f'>\n> [Terms of services]({service_info})'
     if license_info != '':
@@ -136,49 +147,58 @@ def tmpl_model(def_obj: {}, token: str, is_req: bool, *, prefix: str = 'body') -
     if 'required' not in obj:
         obj['required'] = []
     ret = ''
-    
-    for prop, po in obj['properties'].items():
-        p_type = po['type']
-        p_desc = po['description']
-        p_req = 'required' if prop in obj['required'] else 'not required'
-        p_ex = f' (example: {po["example"]})' if 'example' in po else ''
-        p_def = f' (default: {po["default"]})' if 'default' in po else ''
-        if 'allowEmptyValue' in po:
-            p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
-        else:
-            p_empty = ''
-
-        # out
-        if is_req:
-            # in: `name` (type) req - desc (empty) (def)
-            ret = strcat(ret, f'+ {prefix}: `{prop}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}')
-        else:
-            # in: `name` (type) - desc (empty) (example)
-            ret = strcat(ret, f'+ {prefix}: `{prop}` ({p_type}) - {p_desc}{p_empty}{p_ex}')
-        
-        # enum format
-        if 'enum' in po:
-            ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
-        if 'format' in po:
-            ret = strcat(ret, indent(f'+ format: {po["format"]}', 4))
-
-        # nest
-        nest_type = ''
-        if p_type == 'object':
-            nest_type = po['$ref']
-        elif p_type == 'array':
-            nest_type = po['items']['$ref']
-        if nest_type != '':
-            nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=p_type).strip('\n')
-            ret = strcat(ret, indent(nest_tmpl, 4))
+    if is_req:
+        # in: `name` (type) req - desc (empty) (def)
+        for prop, po in obj['properties'].items():
+            p_type = po['type']
+            p_desc = po['description']
+            p_req = 'required' if prop in obj['required'] else 'not required'
+            p_def = f' (default: {po["default"]})' if 'default' in po else ''
+            if 'allowEmptyValue' in po:
+                p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
+            else:
+                p_empty = ''
+            ret = strcat(ret, f'+ `{prefix}` : `{prop}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}')
+            if 'enum' in po:
+                ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
+            nest_type = ''
+            if p_type == 'object':
+                nest_type = po['$ref']
+            elif p_type == 'array':
+                nest_type = po['items']['$ref']
+            if nest_type != '':
+                nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=prop).strip('\n')
+                ret = strcat(ret, indent(nest_tmpl, 4))
+    else:
+        # in: `name` (type) - desc (empty) (example)
+        for prop, po in obj['properties'].items():
+            p_type = po['type']
+            p_desc = po['description']
+            p_ex = f' (example: {po["example"]})' if 'example' in po else ''
+            if 'allowEmptyValue' in po:
+                p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
+            else:
+                p_empty = ''
+            ret = strcat(ret, f'+ `{prefix}` : `{prop}` ({p_type}) - {p_desc}{p_empty}{p_ex}')
+            if 'enum' in po:
+                ret = strcat(ret, indent(f'+ enum: {po["enum"]}', 4))
+            nest_type = ''
+            if p_type == 'object':
+                nest_type = po['$ref']
+            elif p_type == 'array':
+                nest_type = po['items']['$ref']
+            if nest_type != '':
+                nest_tmpl = tmpl_model(def_obj, nest_type, is_req, prefix=prop).strip('\n')
+                ret = strcat(ret, indent(nest_tmpl, 4))
     return ret
 
 
 def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
-    def parse_method_info(method: str, obj: {}) -> str:
+    def parse_method_info(route: str, method: str, obj: {}) -> str:
         # -> GET - Summary
         tmpl = METHOD_INFO_TEMPLATE.format(
             method=method.upper(),
+            route=route,
             summary=obj['summary'],
             description=f'({obj["description"]})' if 'description' in obj else ''
         ).strip(' ')
@@ -188,57 +208,55 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
         # Req Param
         if 'parameters' in obj:
             req = strcat(req, f'+ Request Parameter', 1)
-        for idx, param in enumerate(obj['parameters']):
-            p_name, p_in, p_desc = param['name'], param['in'], param['description']
-            if 'type' in param:
-                p_type = param['type']
-            elif 'schema' in param:
-                nest_type = tmpl_model(def_obj, param['schema']['$ref'], True)
-                if nest_type != '':
-                    req = strcat(req, indent(nest_type, 4), 1 if idx == 0 else 0)
-                continue
-            else:
-                p_type = 'unknown'
-            p_req = 'required' if param['required'] else 'not required'
-            p_def = f' (default: {param["default"]})' if 'default' in param else ''
-            if 'allowEmptyValue' in param:
-                p_empty = ' (allow empty)' if param['allowEmptyValue'] else ' (not empty)'
-            else:
-                p_empty = ''
-            req_param = f'+ {p_in}: `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
-            req = strcat(req, indent(req_param, 4), 1 if idx == 0 else 0)
-            if 'enum' in param:
-                req = strcat(req, indent(f'+ enum: {param["enum"]}', 8))
-            if 'format' in param:
-                req = strcat(req, indent(f'+ format: {param["format"]}', 8))
+            for idx, param in enumerate(obj['parameters']):
+                p_name, p_in, p_desc = param['name'], param['in'], param['description']
+                if 'type' in param:
+                    p_type = param['type']
+                elif 'schema' in param:
+                    nest_type = tmpl_model(def_obj, param['schema']['$ref'], True)
+                    if nest_type != '':
+                        req = strcat(req, indent(nest_type, 4), 1 if idx == 0 else 0)
+                    continue
+                else:
+                    p_type = 'unknown'
+                p_req = 'required' if param['required'] else 'not required'
+                p_def = f' (default: {param["default"]})' if 'default' in param else ''
+                if 'allowEmptyValue' in param:
+                    p_empty = ' (allow empty)' if param['allowEmptyValue'] else ' (not empty)'
+                else:
+                    p_empty = ''
+                req_param = f'+ `{p_in}` : `{p_name}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}'
+                req = strcat(req, indent(req_param, 4), 1 if idx == 0 else 0)
+                if 'enum' in param:
+                    req = strcat(req, indent(f'+ enum: {param["enum"]}', 8))
 
         # Resp 200
-        codes = [int(c) for c in obj['responses'].keys()]
-        codes = [str(c) for c in sorted(codes)]
-        for code in codes:
-            resp_obj = obj['responses'][code]
-            # Resp Desc
-            if 'description' in resp_obj:
-                resp = strcat(resp, f'+ Response {code}', 1)
-                resp_desc = '+ ' + resp_obj['description']
-                resp_desc = indent(resp_desc, 4)
-                resp = strcat(resp, resp_desc, 1)
-            # Resp Header
-            if 'headers' in resp_obj:
-                headers_obj = {k: v for k, v in resp_obj['headers'].items() if k != 'Content-Type'}
-                if len(headers_obj) > 0:
-                    resp = strcat(resp, f'+ Response {code} Header', 1)
-                    for header, header_obj in headers_obj.items():
-                        resp_header = f'+ `{header}` ({header_obj["type"]})'
-                        resp_header = indent(resp_header, 4)
-                        resp = strcat(resp, resp_header, 1)
-            # Resp Body
-            if 'schema' in resp_obj:
-                resp = strcat(resp, f'+ Response {code} Body', 1)
-                resp = strcat(resp, indent(f'+ {resp_obj["schema"]["$ref"].split("/")[-1]}', 4), 1)
-                nest_type = tmpl_model(def_obj, resp_obj['schema']['$ref'], False)
-                if nest_type != '':
-                    resp = strcat(resp, indent(nest_type, 8))
+        if 'responses' in obj:
+            codes = [int(c) for c in obj['responses'].keys()]
+            codes = [str(c) for c in sorted(codes)]
+            for code in codes:
+                resp_obj = obj['responses'][code]
+                # Resp Desc
+                if 'description' in resp_obj:
+                    resp = strcat(resp, f'+ Response {code}', 1)
+                    resp_desc = '+ ' + resp_obj['description']
+                    resp_desc = indent(resp_desc, 4)
+                    resp = strcat(resp, resp_desc, 1)
+                # Resp Header
+                if 'headers' in resp_obj:
+                    headers_obj = {k: v for k, v in resp_obj['headers'].items() if k != 'Content-Type'}
+                    if len(headers_obj) > 0:
+                        resp = strcat(resp, f'+ Response {code} Header', 1)
+                        for header, header_obj in headers_obj.items():
+                            resp_header = f'+ `{header}` ({header_obj["type"]})'
+                            resp_header = indent(resp_header, 4)
+                            resp = strcat(resp, resp_header, 1)
+                # Resp Body
+                if 'schema' in resp_obj:
+                    resp = strcat(resp, f'+ Response {code} Body', 1)
+                    nest_type = tmpl_model(def_obj, resp_obj['schema']['$ref'], False)
+                    if nest_type != '':
+                        resp = strcat(resp, indent(nest_type, 4))
         tmpl = strcat(tmpl, req, 1)
         tmpl = strcat(tmpl, resp, 1)
         return tmpl
@@ -295,14 +313,14 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
             tmpl = strcat(tmpl, resp, 1)
         return tmpl
 
-    def parse_route(route_obj: {}) -> str:
+    def parse_route(route: str, route_obj: {}) -> str:
         """
         parse at '/v1/xxx': {'get': {xxx}}
         """
         method_infos = ''
         method_demos = ''
         for method, method_obj in route_obj.items():
-            method_info = parse_method_info(method, method_obj)
+            method_info = parse_method_info(route, method, method_obj)
             method_demo = parse_method_demo(method, method_obj)
             method_infos = strcat(method_infos, method_info, 1)
             method_demos = strcat(method_demos, method_demo, 1)
@@ -319,7 +337,7 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
             # -> ## Route [xxx]
             summary = [method_obj['summary'] for method_obj in route_obj.values()]
             summary = ' & '.join(summary)
-            methods = parse_route(route_obj)
+            methods = parse_route(route, route_obj)
             tmpl = ROUTE_TEMPLATE.format(
                 summary=summary,
                 route=route,
