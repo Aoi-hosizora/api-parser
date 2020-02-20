@@ -614,7 +614,7 @@ def gen_model(content: str) -> (str, {}):
 
         obj = {
             'title': title,
-            'description': field(kv, 'Description', required=False),
+            'description': field(kv, 'Description'),
             'type': 'object',  # default array
             'required': requires,
             'properties': prop_po

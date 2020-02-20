@@ -122,10 +122,61 @@ def prehandle_paths(paths: {}) -> {}:
     return groups
 
 
-def tmpl_model(def_obj: {}) -> str:
-    pass
+def tmpl_model(def_obj: {}, token: str, is_req: bool) -> str:
+    """
+    parse #/definitions/xxx for request or response param
+    """
+    token = token.split('/')[-1]
+    if token not in def_obj:
+        return ''
+    obj = def_obj[token]
+    if 'properties' not in obj:
+        return ''
+    if 'required' not in obj:
+        obj['required'] = []
+    ret = ''
+    if is_req:
+        # in: `name` (type) req - desc (empty) (def)
+        for prop, po in obj['properties'].items():
+            p_type = po['type']
+            p_desc = po['description']
+            p_req = 'required' if prop in obj['required'] else 'not required'
+            p_def = f' (default: {po["default"]})' if 'default' in po else ''
+            if 'allowEmptyValue' in po:
+                p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
+            else:
+                p_empty = ''
+            ret = strcat(ret, f'+ body: `{prop}` ({p_type}) {p_req} - {p_desc}{p_empty}{p_def}')
+            nest_type = ''
+            if p_type == 'object':
+                nest_type = po['$ref']
+            elif p_type == 'array':
+                nest_type = po['items']['$ref']
+            if nest_type != '':
+                nest_tmpl = tmpl_model(def_obj, nest_type, is_req).strip('\n')
+                ret = strcat(ret, indent(nest_tmpl, 4))
+    else:
+        # in: `name` (type) - desc (empty) (example)
+        for prop, po in obj['properties'].items():
+            p_type = po['type']
+            p_desc = po['description']
+            p_ex = f' (example: {po["example"]})' if 'example' in po else ''
+            if 'allowEmptyValue' in po:
+                p_empty = ' (allow empty)' if po['allowEmptyValue'] else ' (not empty)'
+            else:
+                p_empty = ''
+            ret = strcat(ret, f'+ body: `{prop}` ({p_type}) - {p_desc}{p_empty}{p_ex}')
+            nest_type = ''
+            if p_type == 'object':
+                nest_type = po['$ref']
+            elif p_type == 'array':
+                nest_type = po['items']['$ref']
+            if nest_type != '':
+                nest_tmpl = tmpl_model(def_obj, nest_type, is_req).strip('\n')
+                ret = strcat(ret, indent(nest_tmpl, 4))
+    return ret
 
-def tmpl_ctrl(groups_obj: {}) -> str:
+def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
     def parse_method_info(method: str, obj: {}) -> str:
         # -> GET - Summary
         tmpl = METHOD_INFO_TEMPLATE.format(
@@ -144,7 +195,10 @@ def tmpl_ctrl(groups_obj: {}) -> str:
             if 'type' in param:
                 p_type = param['type']
             elif 'schema' in param:
-                p_type = param['schema']['$ref'].split('/')[-1]
+                nest_type = tmpl_model(def_obj, param['schema']['$ref'], True)
+                if nest_type != '':
+                    req = strcat(req, indent(nest_type, 4), 1 if idx == 0 else 0)
+                continue
             else:
                 p_type = 'unknown'
             p_req = 'required' if param['required'] else 'not required'
@@ -180,9 +234,10 @@ def tmpl_ctrl(groups_obj: {}) -> str:
             # Resp Body
             if 'schema' in resp_obj:
                 resp = strcat(resp, f'+ Response {code} Body', 1)
-                resp_model = resp_obj['schema']['$ref'].split('/')[-1]
-                resp_model = indent(f'See {resp_model}', 4)
-                resp = strcat(resp, resp_model, 1)
+                resp = strcat(resp, indent(f'+ {resp_obj["schema"]["$ref"].split("/")[-1]}', 4), 1)
+                nest_type = tmpl_model(def_obj, resp_obj['schema']['$ref'], False)
+                if nest_type != '':
+                    resp = strcat(resp, indent(nest_type, 8))
         tmpl = strcat(tmpl, req, 1)
         tmpl = strcat(tmpl, resp, 1)
         return tmpl
@@ -305,7 +360,7 @@ def main():
     # !!
     apib = tmpl_main(spec)
     groups_obj = prehandle_paths(spec['paths'])
-    apib = strcat(apib, tmpl_ctrl(groups_obj), 1)
+    apib = strcat(apib, tmpl_ctrl(groups_obj, spec['definitions']), 1)
 
     apib_len = len(apib)
     while True:

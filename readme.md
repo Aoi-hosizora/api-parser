@@ -207,7 +207,7 @@ optional arguments:
 
 ```go
 // @Model         (required)
-// @Description   
+// @Description   (required)
 ```
 
 + Property (multiple) (not required)
