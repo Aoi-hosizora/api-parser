@@ -1,7 +1,5 @@
-import argparse
 import json
 import yaml
-import traceback
 
 # outer
 INFO_TEMPLATE = '''
@@ -57,19 +55,20 @@ def md_url(name: str, url: str, *, other: str = '') -> str:
 
 
 def pretty_json(obj: str) -> str:
+    # noinspection PyBroadException
     try:
         return json.dumps(json.loads(obj), indent=4)
     except:
         return ''
 
 
-def indent(content: str, indent: int) -> str:
+def indent(content: str, size: int) -> str:
     """
     make multiline have an indent
     """
     lines = content.splitlines()
     for idx, line in enumerate(lines):
-        lines[idx] = indent * ' ' + line
+        lines[idx] = size * ' ' + line
     return '\n'.join(lines)
 
 
@@ -353,23 +352,13 @@ def tmpl_ctrl(groups_obj: {}, def_obj: {}) -> str:
     return out
 
 
-def parse():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=str,
-                        required=True, help='path of input yaml file')
-    parser.add_argument('-o', '--output', type=str,
-                        required=True, help='path of output html file')
-    args = parser.parse_args()
-    return args
-
-
-def main():
-    args = parse()
+def run(yaml_name, apib_output):
+    # noinspection PyBroadException
     try:
-        print(f'> Reading {args.input}...')
-        content = open(args.input, 'r', encoding='utf-8').read()
+        print(f'> Reading {yaml_name}...')
+        content = open(yaml_name, 'r', encoding='utf-8').read()
     except:
-        print(f'Error: failed to open file {args.input}.')
+        print(f'Error: failed to open file {yaml_name}.')
         exit(1)
         return
 
@@ -389,14 +378,17 @@ def main():
             break
     apib += '\n'
 
+    # noinspection PyBroadException
     try:
-        print(f'> Saving {args.output}...')
-        with open(args.output, 'w') as f:
+        print(f'> Saving {apib_output}...')
+        with open(apib_output, 'w') as f:
             f.write(apib)
     except:
-        print(f'Error: failed to save file {args.output}.')
+        print(f'Error: failed to save file {apib_output}.')
         exit(1)
 
 
-if __name__ == "__main__":
-    main()
+class Apib:
+
+    def __init__(self, args):
+        run(args.yaml_output, args.apib_output)

@@ -1,4 +1,3 @@
-import argparse
 import json
 import yaml
 
@@ -76,37 +75,30 @@ TEMPLATE = """
 """
 
 
-def parse():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--input', type=str,
-                        required=True, help='path of input yaml file')
-    parser.add_argument('-o', '--output', type=str,
-                        required=True, help='path of output html file')
-    args = parser.parse_args()
-    return args
-
-
-def main():
-    args = parse()
+def run(yaml_name, swag_output):
+    # noinspection PyBroadException
     try:
-        print(f'> Reading {args.input}...')
-        content = open(args.input, 'r', encoding='utf-8').read()
+        print(f'> Reading {yaml_name}...')
+        content = open(yaml_name, 'r', encoding='utf-8').read()
     except:
-        print(f'Error: failed to open file {args.input}.')
+        print(f'Error: failed to open file {yaml_name}.')
         exit(1)
         return
 
     spec = yaml.load(content, Loader=yaml.FullLoader)
     html = TEMPLATE % json.dumps(spec)
 
+    # noinspection PyBroadException
     try:
-        print(f'> Saving {args.output}...')
-        with open(args.output, 'w') as f:
+        print(f'> Saving {swag_output}...')
+        with open(swag_output, 'w') as f:
             f.write(html)
     except:
-        print(f'Error: failed to save file {args.output}.')
+        print(f'Error: failed to save file {swag_output}.')
         exit(1)
 
 
-if __name__ == "__main__":
-    main()
+class Swagger:
+
+    def __init__(self, args):
+        run(args.yaml_output, args.swag_output)

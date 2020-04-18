@@ -1,7 +1,6 @@
-# swagger_apib_gen
+# api-parser
 
-+ Auto generate swagger2 and apib restful api document
-+ **Apib generator isn't under maintenance**
++ A command lint tool for rest api to generating swagger2 and apib document
 
 ## Dependence
 

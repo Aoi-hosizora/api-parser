@@ -1,3 +1,11 @@
+### Editor ###
 .vscode/
 .ionide/
 .history/
+.idea/
+
+### Build ###
+apiparser.egg-info/
+build/
+dist/
+*.log

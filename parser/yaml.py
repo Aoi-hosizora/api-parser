@@ -1,9 +1,7 @@
-import argparse
 import ast
 import json
 import os
 import re
-import traceback
 
 import jsonref
 import yaml
@@ -15,13 +13,13 @@ def trim(content: str) -> str:
 
 def split_bs(content: str) -> []:
     """
-    split string through blackspace and tab (except in brackets)
+    split string through whitespace and tab (except in brackets)
     """
     bl_ptn = re.compile(r'\((.+?)\)')
     bls = bl_ptn.findall(content)
     for bl in bls:
         content = content.replace(bl, bl.replace(' ', ',,'))
-    # replace blankspace to ,, in brackets first
+    # replace whitespace to ,, in brackets first
     ret = list(filter(None, re.split(r'[ \t]', content)))
     return [trim(cnt.replace(',,', ' ')) for cnt in ret]
 
@@ -224,6 +222,7 @@ def field(src: {}, src_field: str, *, required=True) -> str:
         print(f'Error: don\'t contain required field: {src_field}')
         exit(1)
 
+
 ###
 
 
@@ -234,6 +233,7 @@ def gen_main(file_path: str) -> {}:
     @License.Name @License.Url @Contact.Name @Contact.Url @Contact.Email
     @DemoModel @Template @Tag @GlobalSecurity
     """
+    # noinspection PyBroadException
     try:
         content = open(file_path, 'r', encoding='utf-8').read()
     except:
@@ -328,6 +328,7 @@ def gen_files(all_file_paths: [], *, demo_model: {}, template: {}, setting: Sett
     paths = {}
     defs = {}
     for file_path in all_file_paths:
+        # noinspection PyBroadException
         try:
             file_content = open(file_path, 'r', encoding='utf-8').read()
         except:
@@ -371,6 +372,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
     @Template @Security
     :return: route, method, obj
     """
+    # noinspection PyBroadException
     try:
         tokens = parse_content(content)
         kv = split_dict(tokens)
@@ -461,6 +463,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
                 for dm in re.compile(r'\${(.+?)}').findall(dm_content):
                     if dm not in in_demo_model:
                         continue
+                    # noinspection PyBroadException
                     try:
                         new_dm = json.dumps(in_demo_model[dm])  # <<
                         dm_content = dm_content.replace('${%s}' % dm, new_dm)
@@ -470,7 +473,7 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
             return dm_content
 
         def parse_req_resp(desc_anno: str, header_anno: str, model_anno: str, ex_anno: str) -> {}:
-            obj = {}
+            rrobj = {}
             # Desc
             if desc_anno != '':
                 desc_arr = []
@@ -480,11 +483,11 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
                     rcode, *rmsg = split_bs(desc)
                     rmsg = ' '.join(rmsg)
                     rmsg = replace_demo_model(rmsg, demo_model)
-                    if rcode in obj and 'description' in obj[rcode]:
-                        rmsg = obj[rcode]['description'] + ', ' + rmsg
-                    if rcode not in obj:
-                        obj[rcode] = {}
-                    obj[rcode]['description'] = Literal(rmsg)
+                    if rcode in rrobj and 'description' in rrobj[rcode]:
+                        rmsg = rrobj[rcode]['description'] + ', ' + rmsg
+                    if rcode not in rrobj:
+                        rrobj[rcode] = {}
+                    rrobj[rcode]['description'] = Literal(rmsg)
 
             # Header
             if header_anno != '':
@@ -497,14 +500,14 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
                     rheader = replace_demo_model(rheader, demo_model)
                     rheader = json.loads(rheader)
 
-                    if rcode not in obj:
-                        obj[rcode] = {}
-                    if 'headers' not in obj[rcode]:
-                        obj[rcode]['headers'] = {}
-                    for k, v in rheader.items():
-                        obj[rcode]['headers'][k] = {
+                    if rcode not in rrobj:
+                        rrobj[rcode] = {}
+                    if 'headers' not in rrobj[rcode]:
+                        rrobj[rcode]['headers'] = {}
+                    for hk, hv in rheader.items():
+                        rrobj[rcode]['headers'][hk] = {
                             'type': 'string',
-                            'description': v
+                            'description': hv
                         }
 
             # Model
@@ -519,9 +522,9 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
                     obj_name = obj_ptn.findall(rmodel)
                     if len(rmodel) != 0:
                         obj_name = trim(obj_name[0])
-                        if rcode not in obj:
-                            obj[rcode] = {}
-                        obj[rcode]['schema'] = {
+                        if rcode not in rrobj:
+                            rrobj[rcode] = {}
+                        rrobj[rcode]['schema'] = {
                             "$ref": f"#/definitions/{obj_name}"
                         }
 
@@ -536,13 +539,13 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
                     rjson = replace_demo_model(rjson, demo_model)
                     rjson = json.loads(rjson)
                     rjson = json.dumps(rjson, indent=2, ensure_ascii=False)
-                    if rcode not in obj:
-                        obj[rcode] = {}
-                    obj[rcode]['examples'] = {
+                    if rcode not in rrobj:
+                        rrobj[rcode] = {}
+                    rrobj[rcode]['examples'] = {
                         'application/json': Literal(rjson)
                     }
 
-            return obj
+            return rrobj
 
         requests = parse_req_resp('', 'RequestHeader', '', 'RequestEx')
         responses = parse_req_resp('ResponseDesc', 'ResponseHeader', 'ResponseModel', 'ResponseEx')
@@ -575,7 +578,6 @@ def gen_ctrl(content: str, *, demo_model: {}, template: {}, setting: Setting) ->
         }
         return router, method, obj
     except:
-        traceback.print_exc()
         return '', '', None
 
 
@@ -585,6 +587,7 @@ def gen_model(content: str) -> (str, {}):
     @Model @Description @Property
     :return: name, obj
     """
+    # noinspection PyBroadException
     try:
         tokens = parse_content(content)
         kv = split_dict(tokens)
@@ -604,7 +607,7 @@ def gen_model(content: str) -> (str, {}):
             pother = trim(' '.join(pother))
             pother_sp = re.compile(r'"(.*)"(.*)').findall(pother)
             pdesc = trim(pother_sp[0][0])
-            psetting = trim(pother_sp[0][1])
+            # psetting = trim(pother_sp[0][1])
 
             # meta
             if preq == 'true':
@@ -643,39 +646,18 @@ def gen_model(content: str) -> (str, {}):
         }
         return title, obj
     except:
-        # traceback.print_exc()
         return '', None
 
-###
 
-
-def parse():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-m', '--main', type=str,
-                        required=True, help='path of main file containing swagger config')
-    parser.add_argument('-s', '--source', type=str,
-                        default='.', required=True, help='path of source file')
-    parser.add_argument('-n', '--need_content_type', type=bool,
-                        default=False, required=False, help='need Content-Type header or not')
-    parser.add_argument('-o', '--output', type=str,
-                        required=True, help='path of output yaml')
-    parser.add_argument('-e', '--ext', type=str, nargs='*',
-                        default=[], help='extensions of files wanted to parse')
-    args = parser.parse_args()
-    return args
-
-
-def main():
-    args = parse()
-
+def run(main, directory, yaml_output, need_content_type, ext):
     # setting & files
-    setting = Setting(args.need_content_type)
+    setting = Setting(need_content_type)
 
-    main_file = args.main
+    main_file = main
     all_files = [main_file]
-    for root, _, files in os.walk(args.source):
+    for root, _, files in os.walk(directory):
         for f in files:
-            if len(args.ext) == 0 or f.split('.')[-1] in args.ext:
+            if len(ext) == 0 or f.split('.')[-1] in ext:
                 all_files.append(os.path.join(root, f))
 
     # main
@@ -686,6 +668,7 @@ def main():
     # https://json-spec.readthedocs.io/reference.html
     if out['demoModel'] != '':
         print(f'> Parsing {out["demoModel"]}...')
+        # noinspection PyBroadException
         try:
             demo_model = open(out['demoModel'], 'r', encoding='utf-8').read()
             demo_model = str(jsonref.loads(demo_model))
@@ -709,14 +692,17 @@ def main():
 
     # save
     out = stripper(out, ex_key=['security'])
-    print(f'> Saving {args.output}...')
+    print(f'> Saving {yaml_output}...')
+    # noinspection PyBroadException
     try:
-        with open(args.output, 'w', encoding='utf-8') as f:
+        with open(yaml_output, 'w', encoding='utf-8') as f:
             yaml.dump(out, stream=f, encoding='utf-8', allow_unicode=True, sort_keys=False)
     except:
-        print(f'Error: failed to save file {args.output}.')
+        print(f'Error: failed to save file {yaml_output}.')
         exit(1)
 
 
-if __name__ == '__main__':
-    main()
+class Yaml:
+
+    def __init__(self, args):
+        run(args.main, args.directory, args.yaml_output, args.need_content_type, args.ext)
