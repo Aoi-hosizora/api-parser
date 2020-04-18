@@ -1,4 +1,6 @@
 import json
+import sys
+
 import yaml
 
 TEMPLATE = """
@@ -82,8 +84,7 @@ def run(yaml_name, swag_output):
         content = open(yaml_name, 'r', encoding='utf-8').read()
     except:
         print(f'Error: failed to open file {yaml_name}.')
-        exit(1)
-        return
+        sys.exit(1)
 
     spec = yaml.load(content, Loader=yaml.FullLoader)
     html = TEMPLATE % json.dumps(spec)
@@ -91,11 +92,11 @@ def run(yaml_name, swag_output):
     # noinspection PyBroadException
     try:
         print(f'> Saving {swag_output}...')
-        with open(swag_output, 'w') as f:
+        with open(swag_output, 'w', encoding='utf-8') as f:
             f.write(html)
     except:
         print(f'Error: failed to save file {swag_output}.')
-        exit(1)
+        sys.exit(1)
 
 
 class Swagger:

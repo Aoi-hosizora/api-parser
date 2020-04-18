@@ -1,5 +1,6 @@
 import ast
 import json
+import sys
 import os
 import re
 
@@ -220,7 +221,7 @@ def field(src: {}, src_field: str, *, required=True) -> str:
         return ''
     else:
         print(f'Error: don\'t contain required field: {src_field}')
-        exit(1)
+        sys.exit(1)
 
 
 ###
@@ -238,8 +239,7 @@ def gen_main(file_path: str) -> {}:
         content = open(file_path, 'r', encoding='utf-8').read()
     except:
         print(f'Error: failed to open file {file_path}.')
-        exit(1)
-        return
+        sys.exit(1)
 
     tokens = parse_content(content)
     kv = split_dict(tokens)
@@ -333,8 +333,7 @@ def gen_files(all_file_paths: [], *, demo_model: {}, template: {}, setting: Sett
             file_content = open(file_path, 'r', encoding='utf-8').read()
         except:
             print(f'Error: failed to open file {file_path}.')
-            exit(1)
-            return
+            sys.exit(1)
 
         flags = ['// @Router', '// @Model']
         for flag in flags:
@@ -685,7 +684,7 @@ def run(main, directory, yaml_output, need_content_type, ext):
     out['template'] = {}
 
     # ctrl
-    print(f'> Parsing {main_file}...')
+    print(f'> Parsing other {len(all_files)} files...')
     paths, defs = gen_files(all_files, demo_model=demo_model, template=template, setting=setting)
     out['paths'] = paths
     out['definitions'] = defs
@@ -699,10 +698,10 @@ def run(main, directory, yaml_output, need_content_type, ext):
             yaml.dump(out, stream=f, encoding='utf-8', allow_unicode=True, sort_keys=False)
     except:
         print(f'Error: failed to save file {yaml_output}.')
-        exit(1)
+        sys.exit(1)
 
 
 class Yaml:
 
     def __init__(self, args):
-        run(args.main, args.directory, args.yaml_output, args.need_content_type, args.ext)
+        run(args.main, args.dir, args.yaml_output, args.need_content_type, args.ext)

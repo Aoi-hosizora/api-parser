@@ -5,7 +5,7 @@
 .idea/
 
 ### Build ###
-apiparser.egg-info/
 build/
 dist/
-*.log
+*.spec
+__pycache__/

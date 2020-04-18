@@ -1,5 +1,5 @@
 echo Generating swagger yaml...
-python3 yaml.py \
+python3 main_yaml.py \
     -m ./demo/swag/main.go \
     -s ./demo/swag/ \
     -o ./demo/swagger.yaml \
@@ -13,7 +13,7 @@ python3 swagger.py \
 
 echo 
 echo Generating apiary yaml...
-python3 yaml.py \
+python3 main_yaml.py \
     -m ./demo/apib/main.go \
     -s ./demo/apib/ \
     -n true \

@@ -6,55 +6,28 @@
 
 + `jsonref 0.2` (`json` module don't support `$ref` json)
 
+## Build
+
+```bash
+pyinstaller -F cli.py
+# or
+# python "\Python36\Scripts\pyinstaller-script.py" -F cli.py -n apiparser.exe
+```
+
 ## Usage
 
-+ Swagger usage in project see [vidorg/vid_backend](https://github.com/vidorg/vid_backend)
-+ Apib usage in project see [Aoi-hosizora/IM_MSA](https://github.com/Aoi-hosizora/IM_MSA)
-
-+ `gen_yaml`
-
 ```bash
-python3 gen_yaml.py -m ./demo/swag/main.go -s ./demo/swag/ -o ./demo/swagger.yaml -e go
-python3 gen_yaml.py -m ./demo/apib/main.go -s ./demo/apib/ -o ./demo/apiary.yaml -e go
-```
-
-```
-usage: gen_yaml.py [-h] -m MAIN -s SOURCE [-n NEED_CONTENT_TYPE] -o OUTPUT [-e [EXT [EXT ...]]]
-optional arguments:
-  -h, --help                                   show this help message and exit
-  -m MAIN, --main MAIN                         path of main file containing swagger config
-  -s SOURCE, --source SOURCE                   path of source file
-  -n BOOL, --need_content_type BOOL            need Content-Type header or not
-  -o OUTPUT, --output OUTPUT                   path of output yaml
-  -e [EXT [EXT ...]], --ext [EXT [EXT ...]]    extensions of files wanted to parse
-```
-
-+ `gen_swagger`
-
-```bash
-python3 gen_swagger.py -i ./demo/swagger.yaml -o ./demo/swagger.html
-```
-
-```
-usage: gen_swagger_html.py [-h] -i INPUT -o OUTPUT
-optional arguments:
-  -h, --help                   show this help message and exit
-  -i INPUT, --input INPUT      path of input yaml file
-  -o OUTPUT, --output OUTPUT   path of output html file
-```
-
-+ `gen_apib`
-
-```bash
-python3 gen_apib.py -i ./demo/apiary.yaml -o ./demo/apiary.apib
-```
-
-```
-usage: gen_apib.py [-h] -i INPUT -o OUTPUT
-optional arguments:
-  -h, --help                   show this help message and exit
-  -i INPUT, --input INPUT      path of input yaml file
-  -o OUTPUT, --output OUTPUT   path of output html file
+cli.exe \
+    -y \                    # do yaml               (store_true)
+    -m main.go \            # main setting file
+    -d . \                  # root directory
+    -o a.yaml \             # output yaml name
+    -e go \                 # extensions
+    -c \                    # need content-type     (store_true)
+    -s \                    # do generate swagger   (store_true)
+    --swag_output a.html \  # output html name
+    -a \                    # do generate apib      (store_true)
+    --apib_output a.apib    # output apib name
 ```
 
 ## Annotation
@@ -322,3 +295,4 @@ optional arguments:
 + [gazpachoking/jsonref](https://github.com/gazpachoking/jsonref)
 + [Python how convert single quotes to double quotes to format as json string](https://stackoverflow.com/questions/47659782/python-how-convert-single-quotes-to-double-quotes-to-format-as-json-string/55739462#55739462)
 + [OpenAPI 2 Adding Examples](https://swagger.io/docs/specification/2-0/adding-examples/)
++ [albertosottile/py2exe](https://github.com/albertosottile/py2exe)

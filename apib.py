@@ -1,4 +1,6 @@
+import sys
 import json
+
 import yaml
 
 # outer
@@ -359,8 +361,7 @@ def run(yaml_name, apib_output):
         content = open(yaml_name, 'r', encoding='utf-8').read()
     except:
         print(f'Error: failed to open file {yaml_name}.')
-        exit(1)
-        return
+        sys.exit(1)
 
     spec = yaml.load(content, Loader=yaml.FullLoader)
 
@@ -381,11 +382,11 @@ def run(yaml_name, apib_output):
     # noinspection PyBroadException
     try:
         print(f'> Saving {apib_output}...')
-        with open(apib_output, 'w') as f:
+        with open(apib_output, 'w', encoding='utf-8') as f:
             f.write(apib)
-    except:
-        print(f'Error: failed to save file {apib_output}.')
-        exit(1)
+    except Exception as e:
+        print(f'Error: failed to save file {apib_output}.{e}')
+        sys.exit(1)
 
 
 class Apib:
