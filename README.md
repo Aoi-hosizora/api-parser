@@ -1,5 +1,6 @@
 # api-parser
 
++ **SUPPRESS, UNDER NO MAINTENANCE**, go version see [Aoi-hosizora/goapidoc](https://github.com/Aoi-hosizora/goapidoc).
 + A command lint tool for rest api to generating swagger2 and apib document
 
 ## Dependence
